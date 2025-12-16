@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FIRA Logo Animation</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin: 0;
+  height: 100vh;
+  background: #222;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  font-family: 'Fredoka', sans-serif;
+}
+
+.logo {
+  display: flex;
+  align-items: flex-end;
+  font-size: 90px;
+  color: #ffffe4;
+}
+
+/* COMMON LETTER */
+.letter {
+  opacity: 0;
+  transform: translateX(400px);
+  animation-fill-mode: forwards;
+}
+
+/* ENTRY TIMING */
+.f { animation: slideIn 0.8s ease-out 0s forwards; }
+.bottle { 
+  animation:
+    bottleHit 1.2s ease-out 0.8s forwards,
+    bottleShake 0.4s linear 1.8s 3;
+}
+.r { animation: slideIn 0.8s ease-out 1.8s forwards; }
+.a { animation: slideIn 0.8s ease-out 2.6s forwards; }
+
+/* =====================
+   BOTTLE CONTAINER
+===================== */
+.bottle {
+  position: relative;
+  margin: 0 ;
+  transform: translateY(-20px);
+}
+.bottle-align {
+  display: flex;
+  align-items: flex-end;
+  transform: translateY(-8px);
+}
+
+
+
+/* bottle image */
+.bottle img.bottle-img {
+  height: 78px;          /* MATCH LETTER HEIGHT */
+  width: auto;
+  display: block;
+}
+
+/* =====================
+   CAP IMAGE
+===================== */
+.cap {
+  position: absolute;
+  top: -14px;            /* adjust to match bottle.png */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;           /* adjust to cap.png */
+  animation: capFly 0.8s ease-out 3.4s forwards;
+}
+
+.cap img {
+  width: 100%;
+  display: block;
+}
+
+/* =====================
+   SPARKLES
+===================== */
+.sprinkle {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  background: radial-gradient(circle, #ffffe4, #ffd86b);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.s1 { animation: sparkle1 0.8s ease-out 3.45s forwards; }
+.s2 { animation: sparkle2 0.8s ease-out 3.5s forwards; }
+.s3 { animation: sparkle3 0.8s ease-out 3.55s forwards; }
+.s4 { animation: sparkle4 0.8s ease-out 3.6s forwards; }
+
+/* =====================
+   ANIMATIONS
+===================== */
+
+/* Normal slide */
+@keyframes slideIn {
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(0.88);
+  }
+}
+
+/* Bottle hits F, then STAYS */
+@keyframes bottleHit {
+  0%   { opacity: 0; transform: translateX(400px); }
+  60%  { opacity: 1; transform: translateX(-12px); }
+  80%  { opacity: 1; transform: translateX(6px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* Shake while R & A come */
+@keyframes bottleShake {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(-2px); }
+  40%  { transform: translateX(2px); }
+  60%  { transform: translateX(-2px); }
+  80%  { transform: translateX(2px); }
+  100% { transform: translateX(0); }
+}
+
+/* Cap pops & disappears */
+@keyframes capFly {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0) rotate(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -45px) rotate(35deg) scale(0.2);
+  }
+}
+
+/* Sparkles */
+@keyframes sparkle1 {
+  from { opacity: 1; transform: translate(-50%, 0); }
+  to   { opacity: 0; transform: translate(-90%, -55px); }
+}
+@keyframes sparkle2 {
+  from { opacity: 1; transform: translate(-50%, 0); }
+  to   { opacity: 0; transform: translate(-20%, -65px); }
+}
+@keyframes sparkle3 {
+  from { opacity: 1; transform: translate(-50%, 0); }
+  to   { opacity: 0; transform: translate(-120%, -50px); }
+}
+@keyframes sparkle4 {
+  from { opacity: 1; transform: translate(-50%, 0); }
+  to   { opacity: 0; transform: translate(20%, -60px); }
+}
+</style>
+</head>
+
+<body>
+
+<div class="logo">
+  <span class="letter f">F</span>
+
+  <div class="letter bottle">
+  <div class="bottle-align">
+    <img src="bottle.png" class="bottle-img" alt="Bottle I">
+  </div>
+
+  <div class="cap">
+    <img src="cap.png" alt="Bottle cap">
+  </div>
+
+  <div class="sprinkle s1"></div>
+  <div class="sprinkle s2"></div>
+  <div class="sprinkle s3"></div>
+  <div class="sprinkle s4"></div>
+</div>
+
+
+  <span class="letter r">R</span>
+  <span class="letter a">A</span>
+</div>
+
+</body>
+</html>
