@@ -1,0 +1,106 @@
+const mongoose = require('mongoose');
+const crypto = require('crypto');
+
+const eventSchema = new mongoose.Schema({
+    organizer: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    venue: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Venue',
+        required: true
+    },
+    booking: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Booking',
+        default: null
+    },
+    name: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    description: {
+        type: String,
+        required: true
+    },
+    images: [{
+        type: String
+    }],
+    date: {
+        type: Date,
+        required: true
+    },
+    startTime: {
+        type: String,
+        required: true
+    },
+    endTime: {
+        type: String,
+        required: true
+    },
+    eventType: {
+        type: String,
+        enum: ['public', 'private'],
+        default: 'public'
+    },
+    ticketType: {
+        type: String,
+        enum: ['free', 'paid'],
+        default: 'free'
+    },
+    ticketPrice: {
+        type: Number,
+        default: 0
+    },
+    maxAttendees: {
+        type: Number,
+        required: true
+    },
+    currentAttendees: {
+        type: Number,
+        default: 0
+    },
+    privateCode: {
+        type: String,
+        default: null
+    },
+    category: {
+        type: String,
+        enum: ['party', 'concert', 'wedding', 'corporate', 'birthday', 'festival', 'other'],
+        default: 'party'
+    },
+    tags: [{
+        type: String
+    }],
+    status: {
+        type: String,
+        enum: ['draft', 'upcoming', 'ongoing', 'completed', 'cancelled'],
+        default: 'draft'
+    },
+    isFeatured: {
+        type: Boolean,
+        default: false
+    }
+}, {
+    timestamps: true
+});
+
+// Generate private code for private events
+eventSchema.pre('save', function (next) {
+    if (this.eventType === 'private' && !this.privateCode) {
+        this.privateCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+    }
+    next();
+});
+
+// Indexes
+eventSchema.index({ organizer: 1 });
+eventSchema.index({ venue: 1 });
+eventSchema.index({ date: 1 });
+eventSchema.index({ status: 1 });
+eventSchema.index({ eventType: 1 });
+
+module.exports = mongoose.model('Event', eventSchema);
