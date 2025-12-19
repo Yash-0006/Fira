@@ -17,6 +17,7 @@ connectDB();
 // Routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const brandRoutes = require('./routes/brand');
 const venueRoutes = require('./routes/venue');
 const eventRoutes = require('./routes/event');
 const bookingRoutes = require('./routes/booking');
@@ -27,6 +28,7 @@ const verificationRoutes = require('./routes/verification');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/brands', brandRoutes); // Add this
 app.use('/api/venues', venueRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/bookings', bookingRoutes);

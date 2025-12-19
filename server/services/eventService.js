@@ -122,6 +122,15 @@ const eventService = {
         return request;
     },
 
+    // Get events by organizer (User ID)
+    async getEventsByOrganizer(userId, limit = 10) {
+        const events = await Event.find({ organizer: userId, status: { $ne: 'cancelled' } })
+            .populate('venue', 'name address images')
+            .sort({ date: 1 }) // Upcoming first
+            .limit(parseInt(limit));
+        return events;
+    },
+
     // Handle access request
     async handleAccessRequest(requestId, status) {
         const request = await PrivateEventAccess.findByIdAndUpdate(

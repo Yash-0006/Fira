@@ -75,6 +75,10 @@ const eventSchema = new mongoose.Schema({
     tags: [{
         type: String
     }],
+    termsAndConditions: {
+        type: String,
+        default: null
+    },
     status: {
         type: String,
         enum: ['draft', 'upcoming', 'ongoing', 'completed', 'cancelled'],
@@ -89,11 +93,10 @@ const eventSchema = new mongoose.Schema({
 });
 
 // Generate private code for private events
-eventSchema.pre('save', function (next) {
+eventSchema.pre('save', async function () {
     if (this.eventType === 'private' && !this.privateCode) {
         this.privateCode = crypto.randomBytes(4).toString('hex').toUpperCase();
     }
-    next();
 });
 
 // Indexes

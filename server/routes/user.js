@@ -12,6 +12,17 @@ router.get('/', async (req, res) => {
     }
 });
 
+// GET /api/users/brands - Get verified brands
+router.get('/brands', async (req, res) => {
+    try {
+        // Pass query params: type, search, sort, lat, lng, page, limit
+        const result = await userService.getBrands(req.query);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // GET /api/users/:id - Get user by ID
 router.get('/:id', async (req, res) => {
     try {

@@ -64,6 +64,13 @@ const venueSchema = new mongoose.Schema({
         date: { type: Date },
         reason: { type: String }
     }],
+    daySlots: [{
+        date: { type: Date, required: true },
+        isAvailable: { type: Boolean, default: true },
+        isBooked: { type: Boolean, default: false },
+        bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+        bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', default: null }
+    }],
     status: {
         type: String,
         enum: ['pending', 'approved', 'rejected', 'suspended'],

@@ -15,7 +15,13 @@ const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
+    required: true,
     trim: true
+  },
+  description: {
+    type: String,
+    default: null,
+    maxLength: 500
   },
   avatar: {
     type: String,
@@ -27,7 +33,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'venue_owner', 'admin'],
+    enum: ['user'],
     default: 'user'
   },
   isVerified: {
@@ -67,6 +73,31 @@ const userSchema = new mongoose.Schema({
     ifscCode: { type: String, default: null },
     bankName: { type: String, default: null }
   },
+  // Brand/Profile Fields
+  coverPhoto: {
+    type: String,
+    default: null
+  },
+  ownerName: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  address: {
+    type: String,
+    default: null
+  },
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number],
+      default: [0, 0] // [longitude, latitude]
+    }
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -76,6 +107,8 @@ const userSchema = new mongoose.Schema({
 });
 
 // Index for faster queries
-userSchema.index({ role: 1 });
+userSchema.index({ location: '2dsphere' });
+userSchema.index({ verificationBadge: 1 });
+userSchema.index({ isVerified: 1 });
 
 module.exports = mongoose.model('User', userSchema);
