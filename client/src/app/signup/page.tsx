@@ -24,7 +24,6 @@ export default function SignUpPage() {
         email: '',
         password: '',
         confirmPassword: '',
-        role: 'user' as 'user' | 'venue_owner',
     });
 
     // Countdown timer for OTP expiry
@@ -69,7 +68,6 @@ export default function SignUpPage() {
                 name: formData.name,
                 email: formData.email,
                 password: formData.password,
-                role: formData.role,
             });
 
             // Move to OTP verification step
@@ -254,8 +252,8 @@ export default function SignUpPage() {
                                         {formData.confirmPassword && (
                                             <div className="mt-2 flex items-center gap-2 text-xs text-white">
                                                 <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${formData.password === formData.confirmPassword
-                                                        ? 'bg-white/20 border border-white/50'
-                                                        : 'bg-white/5 border border-white/20'
+                                                    ? 'bg-white/20 border border-white/50'
+                                                    : 'bg-white/5 border border-white/20'
                                                     }`}>
                                                     {formData.password === formData.confirmPassword && (
                                                         <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,51 +268,15 @@ export default function SignUpPage() {
                                         )}
                                     </div>
 
-                                    {/* Role Selection */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-3">
-                                            I want to
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData({ ...formData, role: 'user' })}
-                                                className={`p-4 rounded-xl border text-left transition-all ${formData.role === 'user'
-                                                    ? 'bg-violet-500/10 border-violet-500/50 text-white'
-                                                    : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
-                                                    }`}
-                                            >
-                                                <svg className="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                                                </svg>
-                                                <div className="font-medium text-sm">Attend Events</div>
-                                                <div className="text-xs mt-1 text-gray-500">Find & book venues, buy tickets</div>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData({ ...formData, role: 'venue_owner' })}
-                                                className={`p-4 rounded-xl border text-left transition-all ${formData.role === 'venue_owner'
-                                                    ? 'bg-violet-500/10 border-violet-500/50 text-white'
-                                                    : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
-                                                    }`}
-                                            >
-                                                <svg className="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                </svg>
-                                                <div className="font-medium text-sm">List Venues</div>
-                                                <div className="text-xs mt-1 text-gray-500">Monetize your space</div>
-                                            </button>
-                                        </div>
-                                    </div>
 
                                     <Button
-                                        type="submit"
+                                        type="button"
                                         variant="primary"
                                         size="lg"
-                                        className="w-full"
-                                        isLoading={isLoading}
+                                        className="w-full opacity-50 cursor-not-allowed"
+                                        disabled
                                     >
-                                        Create Account
+                                        Create Account (Coming Soon)
                                     </Button>
                                 </form>
 

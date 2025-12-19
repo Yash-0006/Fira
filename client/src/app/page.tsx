@@ -5,7 +5,7 @@ import CreatePartySection from '@/components/CreatePartySection';
 import BrandBandSection from '@/components/BrandBandSection';
 import VenueOwnerSection from '@/components/VenueOwnerSection';
 import CTASection from '@/components/CTASection';
-import Footer from '@/components/Footer';
+
 
 export default function Home() {
   return (
@@ -51,7 +51,7 @@ export default function Home() {
         <BrandBandSection />
         <VenueOwnerSection />
         <CTASection />
-        <Footer />
+
       </main>
     </>
   );

@@ -99,6 +99,36 @@ export const usersApi = {
         }),
 };
 
+// Brands API
+export const brandsApi = {
+    getAll: (params?: Record<string, string>) => {
+        const query = params ? '?' + new URLSearchParams(params).toString() : '';
+        return request(`/brands${query}`);
+    },
+    getById: (id: string) => request(`/brands/${id}`),
+    getMyProfile: (userId: string) => request(`/brands/my-profile?userId=${userId}`),
+    create: (data: unknown) =>
+        request('/brands', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+    update: (id: string, data: unknown) =>
+        request(`/brands/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }),
+    getPosts: (id: string, params?: Record<string, string>) => {
+        const query = params ? '?' + new URLSearchParams(params).toString() : '';
+        return request(`/brands/${id}/posts${query}`);
+    },
+    createPost: (id: string, data: unknown) =>
+        request(`/brands/${id}/posts`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+    getEvents: (id: string) => request(`/brands/${id}/events`),
+};
+
 // Venues API
 export const venuesApi = {
     getAll: (params?: Record<string, string>) => {

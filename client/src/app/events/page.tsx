@@ -4,24 +4,50 @@ import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import PartyBackground from '@/components/PartyBackground';
 import EventCard from '@/components/EventCard';
-import { EventCardSkeleton, Input, Button } from '@/components/ui';
+import { Input, Button, Select } from '@/components/ui';
 import { eventsApi } from '@/lib/api';
 import { Event } from '@/lib/types';
 
-const categories = ['All', 'Party', 'Concert', 'Wedding', 'Corporate', 'Birthday', 'Festival'];
-const eventTypes = ['All', 'Public', 'Private'];
-const ticketTypes = ['All', 'Free', 'Paid'];
+const categories = [
+    { value: 'All', label: 'All Categories' },
+    { value: 'Party', label: 'Party' },
+    { value: 'Concert', label: 'Concert' },
+    { value: 'Wedding', label: 'Wedding' },
+    { value: 'Corporate', label: 'Corporate' },
+    { value: 'Birthday', label: 'Birthday' },
+    { value: 'Festival', label: 'Festival' },
+];
+
+const sortOptions = [
+    { value: 'upcoming', label: 'Upcoming' },
+    { value: 'top', label: 'Top Events' },
+    { value: 'latest', label: 'Latest' },
+    { value: 'nearby', label: 'Near You' },
+];
 
 export default function EventsPage() {
     const [events, setEvents] = useState<Event[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
-    const [selectedEventType, setSelectedEventType] = useState('All');
-    const [selectedTicketType, setSelectedTicketType] = useState('All');
+    const [selectedSort, setSelectedSort] = useState('upcoming');
+    const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [locationError, setLocationError] = useState(false);
 
     useEffect(() => {
         fetchEvents();
+    }, []);
+
+    // Request location on mount
+    useEffect(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => setLocationError(true)
+            );
+        } else {
+            setLocationError(true);
+        }
     }, []);
 
     const fetchEvents = async () => {
@@ -31,25 +57,88 @@ export default function EventsPage() {
             setEvents(data as Event[]);
         } catch (error) {
             console.error('Failed to fetch events:', error);
-            // Use mock data for demo
             setEvents(getMockEvents());
         } finally {
             setIsLoading(false);
         }
     };
 
-    const filteredEvents = events.filter((event) => {
-        const matchesSearch = event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            event.description.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = selectedCategory === 'All' ||
-            event.category.toLowerCase() === selectedCategory.toLowerCase();
-        const matchesEventType = selectedEventType === 'All' ||
-            event.eventType.toLowerCase() === selectedEventType.toLowerCase();
-        const matchesTicketType = selectedTicketType === 'All' ||
-            (selectedTicketType === 'Free' && event.ticketType === 'free') ||
-            (selectedTicketType === 'Paid' && event.ticketType === 'paid');
-        return matchesSearch && matchesCategory && matchesEventType && matchesTicketType;
-    });
+    const isFiltered = searchQuery !== '' || selectedCategory !== 'All' || selectedSort !== 'upcoming';
+
+    // Sorting functions
+    const sortByUpcoming = (a: Event, b: Event) => new Date(a.date).getTime() - new Date(b.date).getTime();
+    const sortByTop = (a: Event, b: Event) => b.currentAttendees - a.currentAttendees;
+    const sortByLatest = (a: Event, b: Event) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+
+    const filteredEvents = events
+        .filter((event) => {
+            const matchesSearch = event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                event.description.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesCategory = selectedCategory === 'All' ||
+                event.category.toLowerCase() === selectedCategory.toLowerCase();
+            return matchesSearch && matchesCategory;
+        })
+        .sort((a, b) => {
+            if (selectedSort === 'top') return sortByTop(a, b);
+            if (selectedSort === 'latest') return sortByLatest(a, b);
+            return sortByUpcoming(a, b);
+        });
+
+    // Sections for non-filtered view
+    const upcomingEvents = [...events].sort(sortByUpcoming).slice(0, 4);
+    const topEvents = [...events].sort(sortByTop).slice(0, 4);
+    const latestEvents = [...events].sort(sortByLatest).slice(0, 4);
+    // Nearby would require actual geo sorting - for now show all if location available
+    const nearbyEvents = location ? events.slice(0, 4) : [];
+
+    const handleSeeAll = (sort: string) => {
+        setSelectedSort(sort);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleEnableLocation = () => {
+        if (!navigator.geolocation) return;
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                setLocationError(false);
+            },
+            () => {
+                setLocationError(true);
+                alert('Please enable location services in your browser settings to see nearby events.');
+            }
+        );
+    };
+
+    const Section = ({ title, data, sort }: { title: string; data: Event[]; sort?: string }) => {
+        if (!data || data.length === 0) return null;
+
+        return (
+            <div className="mb-16">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-white relative pl-4">
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-violet-500 to-pink-500 rounded-full"></span>
+                        {title}
+                    </h2>
+                    {sort && (
+                        <Button
+                            variant="ghost"
+                            className="text-gray-400 hover:text-white text-sm"
+                            onClick={() => handleSeeAll(sort)}
+                        >
+                            See All
+                        </Button>
+                    )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {data.map((event) => (
+                        <EventCard key={event._id} event={event} />
+                    ))}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <>
@@ -60,125 +149,166 @@ export default function EventsPage() {
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
                     <div className="text-center mb-12">
-                        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                            Upcoming <span className="text-violet-400">Events</span>
+                        <h1 className="text-5xl md:text-6xl font-extrabold text-white mb-6">
+                            Discover <span className="text-violet-400">Events</span>
                         </h1>
                         <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                            Discover the hottest parties, concerts, and gatherings happening near you.
+                            Find the hottest parties, concerts, and gatherings happening near you.
                         </p>
                     </div>
 
-                    {/* Search & Filters */}
-                    <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-2xl p-6 mb-8">
-                        <div className="flex flex-col gap-4">
-                            {/* Search Bar */}
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <Input
-                                        placeholder="Search events..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        leftIcon={
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    {/* Search & Filter Bar */}
+                    <div className="relative z-30 bg-black/70 backdrop-blur-sm border border-white/10 rounded-2xl p-4 mb-12 shadow-2xl transition-all">
+                        <div className="flex flex-col md:flex-row gap-4 items-center">
+                            <div className="flex-1 w-full">
+                                <Input
+                                    placeholder="Search events, venues, organizers..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="bg-black/40 border-white/10 focus:bg-black/60 h-[42px]"
+                                    leftIcon={
+                                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    }
+                                />
+                            </div>
+                            <div className="flex gap-4 w-full md:w-auto">
+                                <div className="w-full md:w-48">
+                                    <Select
+                                        value={selectedCategory}
+                                        onChange={setSelectedCategory}
+                                        options={categories}
+                                        placeholder="Category"
+                                        icon={
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                                             </svg>
                                         }
                                     />
                                 </div>
-                                <Button variant="secondary">
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    Date
-                                </Button>
-                            </div>
-
-                            {/* Category Filter */}
-                            <div className="flex gap-2 overflow-x-auto pb-2">
-                                {categories.map((category) => (
-                                    <button
-                                        key={category}
-                                        onClick={() => setSelectedCategory(category)}
-                                        className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${selectedCategory === category
-                                            ? 'bg-white text-black'
-                                            : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-white/10'
-                                            }`}
-                                    >
-                                        {category}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Additional Filters */}
-                            <div className="flex flex-wrap gap-4">
-                                {/* Event Type */}
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm text-gray-400">Type:</span>
-                                    <div className="flex gap-2">
-                                        {eventTypes.map((type) => (
-                                            <button
-                                                key={type}
-                                                onClick={() => setSelectedEventType(type)}
-                                                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${selectedEventType === type
-                                                    ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
-                                                    : 'bg-white/5 text-gray-500 hover:bg-white/10 border border-white/10'
-                                                    }`}
-                                            >
-                                                {type}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Ticket Type */}
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm text-gray-400">Tickets:</span>
-                                    <div className="flex gap-2">
-                                        {ticketTypes.map((type) => (
-                                            <button
-                                                key={type}
-                                                onClick={() => setSelectedTicketType(type)}
-                                                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${selectedTicketType === type
-                                                    ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                                                    : 'bg-white/5 text-gray-500 hover:bg-white/10 border border-white/10'
-                                                    }`}
-                                            >
-                                                {type}
-                                            </button>
-                                        ))}
-                                    </div>
+                                <div className="w-full md:w-48">
+                                    <Select
+                                        value={selectedSort}
+                                        onChange={setSelectedSort}
+                                        options={sortOptions}
+                                        placeholder="Sort by"
+                                        icon={
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                                            </svg>
+                                        }
+                                    />
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Results Count */}
-                    <div className="flex items-center justify-between mb-6">
-                        <p className="text-gray-400">
-                            {isLoading ? 'Loading...' : `${filteredEvents.length} events found`}
-                        </p>
-                    </div>
+                    {isLoading && (
+                        <div className="flex justify-center py-20">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-500"></div>
+                        </div>
+                    )}
 
-                    {/* Events Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {isLoading ? (
-                            Array.from({ length: 6 }).map((_, i) => (
-                                <EventCardSkeleton key={i} />
-                            ))
-                        ) : filteredEvents.length > 0 ? (
-                            filteredEvents.map((event) => (
-                                <EventCard key={event._id} event={event} />
-                            ))
-                        ) : (
-                            <div className="col-span-full text-center py-16">
-                                <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <h3 className="text-xl font-semibold text-white mb-2">No events found</h3>
-                                <p className="text-gray-400">Try adjusting your filters or check back later</p>
+                    {!isLoading && !isFiltered && (
+                        <>
+                            <Section title="Upcoming Events" data={upcomingEvents} sort="upcoming" />
+                            <Section title="Top Events" data={topEvents} sort="top" />
+                            <Section title="Latest Events" data={latestEvents} sort="latest" />
+
+                            {/* CTA Section */}
+                            <div className="my-20 relative overflow-hidden rounded-3xl border border-white/10 bg-black/70 backdrop-blur-sm p-8 md:p-12 text-center group">
+                                <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay"></div>
+                                <div className="relative z-10">
+                                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                                        Want to create an event?
+                                    </h2>
+                                    <p className="text-gray-400 mb-8 max-w-xl mx-auto text-lg">
+                                        Host your own party, concert, or gathering. Reach thousands of attendees and make it unforgettable.
+                                    </p>
+                                    <Button size="lg" className="bg-white text-black hover:bg-gray-200 font-bold px-8">
+                                        Create Event
+                                    </Button>
+                                </div>
                             </div>
-                        )}
-                    </div>
+
+                            {/* Near You Section */}
+                            <div className="mb-16">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-2xl font-bold text-white relative pl-4">
+                                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-violet-500 to-pink-500 rounded-full"></span>
+                                        Near You
+                                    </h2>
+                                    {location && (
+                                        <Button
+                                            variant="ghost"
+                                            className="text-gray-400 hover:text-white text-sm"
+                                            onClick={() => handleSeeAll('nearby')}
+                                        >
+                                            See All
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {location ? (
+                                    nearbyEvents.length > 0 ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                            {nearbyEvents.map((event) => (
+                                                <EventCard key={event._id} event={event} />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12 border border-white/5 rounded-2xl bg-white/5">
+                                            <p className="text-gray-400">No events found near your location.</p>
+                                        </div>
+                                    )
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 border border-white/10 rounded-2xl bg-gradient-to-b from-white/5 to-transparent text-center">
+                                        <div className="w-16 h-16 bg-violet-500/20 rounded-full flex items-center justify-center mb-4">
+                                            <svg className="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white mb-2">Locate Events Nearby</h3>
+                                        <p className="text-gray-400 max-w-md mb-6">
+                                            Enable location access to discover events happening around you.
+                                        </p>
+                                        <Button
+                                            onClick={handleEnableLocation}
+                                            variant="violet"
+                                        >
+                                            Enable Location
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {!isLoading && isFiltered && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {filteredEvents.map((event) => (
+                                <EventCard key={event._id} event={event} />
+                            ))}
+                            {filteredEvents.length === 0 && (
+                                <div className="col-span-full text-center py-20 text-gray-500">
+                                    <p className="text-xl">No events found matching your criteria</p>
+                                    <Button
+                                        variant="ghost"
+                                        className="mt-4 text-violet-400 hover:text-violet-300"
+                                        onClick={() => {
+                                            setSearchQuery('');
+                                            setSelectedCategory('All');
+                                            setSelectedSort('upcoming');
+                                        }}
+                                    >
+                                        Clear Filters
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </main>
         </>
@@ -232,8 +362,8 @@ function getMockEvents(): Event[] {
             category: 'concert',
             tags: ['Acoustic', 'Live Music', 'Indie'],
             status: 'upcoming',
-            isFeatured: false,
-            createdAt: new Date().toISOString(),
+            isFeatured: true,
+            createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
             updatedAt: new Date().toISOString(),
         },
         {
@@ -257,7 +387,7 @@ function getMockEvents(): Event[] {
             tags: ['Startup', 'Networking', 'Tech'],
             status: 'upcoming',
             isFeatured: false,
-            createdAt: new Date().toISOString(),
+            createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
             updatedAt: new Date().toISOString(),
         },
         {
@@ -281,7 +411,7 @@ function getMockEvents(): Event[] {
             tags: ['Wedding', 'Reception', 'Celebration'],
             status: 'upcoming',
             isFeatured: false,
-            createdAt: new Date().toISOString(),
+            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
             updatedAt: new Date().toISOString(),
         },
         {
@@ -305,7 +435,7 @@ function getMockEvents(): Event[] {
             tags: ['Retro', 'Beach', 'Party'],
             status: 'upcoming',
             isFeatured: true,
-            createdAt: new Date().toISOString(),
+            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
             updatedAt: new Date().toISOString(),
         },
         {

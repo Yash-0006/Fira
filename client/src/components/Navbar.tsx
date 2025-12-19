@@ -19,8 +19,8 @@ export default function Navbar() {
         <>
             <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-auto max-w-3xl transition-all duration-300">
                 <div className={`px-6 py-2.5 rounded-full border shadow-2xl transition-all duration-300 ${isScrolled
-                        ? 'bg-black border-white/10'
-                        : 'nav-floating glass-card border-white/10'
+                    ? 'bg-black/70 backdrop-blur-sm border-white/10'
+                    : 'nav-floating glass-card border-white/10'
                     }`}>
                     <div className="flex items-center gap-8">
                         {/* Logo */}
@@ -50,14 +50,14 @@ export default function Navbar() {
                             </Link>
                         </div>
 
-                        {/* Auth Buttons */}
+                        {/* Auth Buttons - Disabled for now */}
                         <div className="hidden md:flex items-center space-x-3">
-                            <Link href="/signin" className="text-gray-400 hover:text-white transition-colors text-sm">
+                            <span className="text-gray-500 cursor-not-allowed text-sm">
                                 Sign In
-                            </Link>
-                            <Link href="/signup" className="btn-primary px-4 py-1.5 rounded-full text-sm">
+                            </span>
+                            <span className="bg-gray-600 text-gray-400 cursor-not-allowed px-4 py-1.5 rounded-full text-sm">
                                 Get Started
-                            </Link>
+                            </span>
                         </div>
 
                         {/* Mobile Menu Button */}
@@ -93,12 +93,12 @@ export default function Navbar() {
                                 Brands
                             </Link>
                             <div className="pt-3 flex flex-col space-y-2 border-t border-white/10">
-                                <Link href="/signin" className="text-gray-400 hover:text-white transition-colors text-sm py-1">
+                                <span className="text-gray-500 cursor-not-allowed text-sm py-1">
                                     Sign In
-                                </Link>
-                                <Link href="/signup" className="btn-primary px-4 py-2 rounded-full text-sm text-center">
+                                </span>
+                                <span className="bg-gray-600 text-gray-400 cursor-not-allowed px-4 py-2 rounded-full text-sm text-center">
                                     Get Started
-                                </Link>
+                                </span>
                             </div>
                         </div>
                     </div>

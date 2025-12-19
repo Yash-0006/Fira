@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/components/ui/Toast";
+import Footer from '@/components/Footer';
 
 import { Fascinate } from 'next/font/google';
 
@@ -48,6 +49,7 @@ export default function RootLayout({
         <AuthProvider>
           <ToastProvider>
             {children}
+            <Footer />
           </ToastProvider>
         </AuthProvider>
       </body>

@@ -19,6 +19,21 @@ export default function VenueDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState(0);
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<string | null>(() => {
+        const today = new Date();
+        // Use local date format to avoid timezone issues
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
+
+    // Format date for display as dd/mm/yyyy
+    const formatDateForDisplay = (dateStr: string | null) => {
+        if (!dateStr) return '';
+        const [year, month, day] = dateStr.split('-');
+        return `${day}/${month}/${year}`;
+    };
     const [bookingData, setBookingData] = useState({
         date: '',
         startTime: '',
@@ -52,6 +67,10 @@ export default function VenueDetailPage() {
             showToast('Please sign in to book this venue', 'warning');
             router.push('/signin');
             return;
+        }
+        // Set the selected date in booking data when opening modal
+        if (selectedDate) {
+            setBookingData({ ...bookingData, date: selectedDate });
         }
         setIsBookingModalOpen(true);
     };
@@ -163,23 +182,45 @@ export default function VenueDetailPage() {
                                         </span>
                                     )}
                                 </div>
-                                <div className="flex items-center gap-2 text-gray-400">
+                                <div className="flex items-center gap-2 text-gray-400 mb-4">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     </svg>
                                     <span>{venue.address.street}, {venue.address.city}, {venue.address.state}</span>
                                 </div>
+
+                                {/* Owner Info */}
+                                {venue.owner && typeof venue.owner === 'object' && (
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white font-medium overflow-hidden">
+                                            {(venue.owner as { avatar?: string; name?: string }).avatar ? (
+                                                <img src={(venue.owner as { avatar: string }).avatar} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                (venue.owner as { name?: string }).name?.charAt(0).toUpperCase()
+                                            )}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-white font-medium">{(venue.owner as { name?: string }).name}</span>
+                                                <svg className="w-4 h-4 text-violet-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <span className="text-gray-400 text-sm">Venue Owner</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Description */}
-                            <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-6">
+                            <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
                                 <h2 className="text-xl font-semibold text-white mb-4">About this venue</h2>
                                 <p className="text-gray-400 leading-relaxed">{venue.description}</p>
                             </div>
 
                             {/* Amenities */}
                             {venue.amenities && venue.amenities.length > 0 && (
-                                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-6">
+                                <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
                                     <h2 className="text-xl font-semibold text-white mb-4">Amenities</h2>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                         {venue.amenities.map((amenity, index) => (
@@ -196,7 +237,7 @@ export default function VenueDetailPage() {
 
                             {/* Rules */}
                             {venue.rules && venue.rules.length > 0 && (
-                                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-6">
+                                <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
                                     <h2 className="text-xl font-semibold text-white mb-4">Venue Rules</h2>
                                     <ul className="space-y-2">
                                         {venue.rules.map((rule, index) => (
@@ -210,11 +251,109 @@ export default function VenueDetailPage() {
                                     </ul>
                                 </div>
                             )}
+
+                            {/* Day-wise Availability Calendar */}
+                            <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
+                                <h2 className="text-xl font-semibold text-white mb-4">Availability Calendar</h2>
+                                <p className="text-gray-400 text-sm mb-6">Showing availability for the next 2 months. Day-wise booking only.</p>
+
+                                {/* Legend */}
+                                <div className="flex flex-wrap gap-4 mb-6">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded bg-green-500/30 border border-green-500/50"></div>
+                                        <span className="text-sm text-gray-400">Available</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded bg-red-500/30 border border-red-500/50"></div>
+                                        <span className="text-sm text-gray-400">Booked</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded bg-gray-500/30 border border-gray-500/50"></div>
+                                        <span className="text-sm text-gray-400">Unavailable</span>
+                                    </div>
+                                </div>
+
+                                {/* Calendar Grid */}
+                                <div className="grid grid-cols-7 gap-2">
+                                    {/* Day headers */}
+                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                                        <div key={day} className="text-center text-xs text-gray-500 font-medium py-2">
+                                            {day}
+                                        </div>
+                                    ))}
+
+                                    {/* Generate 60 days of slots */}
+                                    {(() => {
+                                        const slots = [];
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+
+                                        // Add empty slots for days before the start day of week
+                                        const firstDayOfWeek = today.getDay();
+                                        for (let i = 0; i < firstDayOfWeek; i++) {
+                                            slots.push(
+                                                <div key={`empty-${i}`} className="aspect-square"></div>
+                                            );
+                                        }
+
+                                        // Generate 60 days
+                                        for (let i = 0; i < 60; i++) {
+                                            const date = new Date(today);
+                                            date.setDate(date.getDate() + i);
+
+                                            // Check if this date is in blockedDates or daySlots
+                                            const daySlot = (venue as Venue & { daySlots?: Array<{ date: string; isAvailable: boolean; isBooked: boolean }> }).daySlots?.find(
+                                                (slot) => new Date(slot.date).toDateString() === date.toDateString()
+                                            );
+
+                                            let bgClass = 'bg-green-500/20 border-green-500/40 hover:bg-green-500/30 cursor-pointer';
+                                            // Use local date format to avoid timezone issues
+                                            const year = date.getFullYear();
+                                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                                            const day = String(date.getDate()).padStart(2, '0');
+                                            const dateStr = `${year}-${month}-${day}`;
+                                            const isSelected = selectedDate === dateStr;
+
+                                            if (daySlot?.isBooked) {
+                                                bgClass = 'bg-red-500/20 border-red-500/40 cursor-not-allowed';
+                                            } else if (daySlot && !daySlot.isAvailable) {
+                                                bgClass = 'bg-gray-500/20 border-gray-500/40 cursor-not-allowed';
+                                            } else if (isSelected) {
+                                                bgClass = 'bg-violet-500/30 border-violet-500 ring-2 ring-violet-500 cursor-pointer';
+                                            }
+
+                                            const isToday = i === 0;
+
+                                            slots.push(
+                                                <button
+                                                    key={date.toISOString()}
+                                                    className={`aspect-square rounded-lg border text-xs font-medium flex flex-col items-center justify-center transition-colors ${bgClass}`}
+                                                    onClick={() => {
+                                                        if (!daySlot?.isBooked && daySlot?.isAvailable !== false) {
+                                                            setSelectedDate(dateStr);
+                                                        }
+                                                    }}
+                                                    disabled={daySlot?.isBooked || daySlot?.isAvailable === false}
+                                                >
+                                                    <span className={`${isSelected ? 'text-violet-300' : isToday ? 'text-violet-400' : 'text-gray-300'}`}>
+                                                        {date.getDate()}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-500">
+                                                        {date.toLocaleString('default', { month: 'short' })}
+                                                    </span>
+                                                </button>
+                                            );
+                                        }
+
+                                        return slots;
+                                    })()}
+                                </div>
+                            </div>
                         </div>
 
                         {/* Sidebar - Booking Card */}
                         <div className="lg:col-span-1">
-                            <div className="sticky top-28 bg-white/[0.02] border border-white/[0.05] rounded-2xl p-6">
+                            <div className="sticky top-28 bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
                                 {/* Price */}
                                 <div className="mb-6">
                                     <div className="flex items-baseline gap-2">
@@ -270,13 +409,11 @@ export default function VenueDetailPage() {
             >
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Date</label>
-                        <input
-                            type="date"
-                            value={bookingData.date}
-                            onChange={(e) => setBookingData({ ...bookingData, date: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
-                        />
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Selected Date</label>
+                        <div className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white">
+                            {selectedDate ? formatDateForDisplay(selectedDate) : 'Please select a date from the calendar'}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Select a different date from the calendar above if needed</p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>

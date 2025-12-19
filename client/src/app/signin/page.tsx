@@ -160,13 +160,13 @@ export default function SignInPage() {
                             </div>
 
                             <Button
-                                type="submit"
+                                type="button"
                                 variant="primary"
                                 size="lg"
-                                className="w-full"
-                                isLoading={isLoading}
+                                className="w-full opacity-50 cursor-not-allowed"
+                                disabled
                             >
-                                Sign In
+                                Sign In (Coming Soon)
                             </Button>
 
                             {/* Resend Verification Button */}

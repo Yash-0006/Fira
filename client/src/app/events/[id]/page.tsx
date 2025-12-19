@@ -197,14 +197,24 @@ export default function EventDetailPage() {
                             </div>
 
                             {/* Description */}
-                            <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-6">
+                            <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
                                 <h2 className="text-xl font-semibold text-white mb-4">About this event</h2>
                                 <p className="text-gray-400 leading-relaxed whitespace-pre-line">{event.description}</p>
                             </div>
 
+                            {/* Terms and Conditions */}
+                            {(event as Event & { termsAndConditions?: string }).termsAndConditions && (
+                                <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
+                                    <h2 className="text-xl font-semibold text-white mb-4">Terms & Conditions</h2>
+                                    <p className="text-gray-400 leading-relaxed whitespace-pre-line text-sm">
+                                        {(event as Event & { termsAndConditions?: string }).termsAndConditions}
+                                    </p>
+                                </div>
+                            )}
+
                             {/* Venue Info */}
                             {venue && typeof venue === 'object' && (
-                                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-6">
+                                <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
                                     <h2 className="text-xl font-semibold text-white mb-4">Venue</h2>
                                     <div className="flex items-start gap-4">
                                         <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center text-violet-400">
@@ -234,7 +244,7 @@ export default function EventDetailPage() {
 
                         {/* Sidebar - Ticket Card */}
                         <div className="lg:col-span-1">
-                            <div className="sticky top-28 bg-white/[0.02] border border-white/[0.05] rounded-2xl p-6">
+                            <div className="sticky top-28 bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
                                 {/* Price */}
                                 <div className="mb-6">
                                     <div className="flex items-baseline gap-2">

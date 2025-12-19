@@ -29,7 +29,7 @@ export default function EventCard({ event }: EventCardProps) {
 
     return (
         <Link href={`/events/${event._id}`}>
-            <div className="group bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-2xl overflow-hidden transition-all duration-300 hover:bg-white/[0.04] hover:border-white/[0.08] hover:scale-[1.02]">
+            <div className="group relative bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-300 hover:-translate-y-1">
                 {/* Image */}
                 <div className="relative h-44 overflow-hidden">
                     {event.images && event.images.length > 0 ? (
@@ -88,8 +88,12 @@ export default function EventCard({ event }: EventCardProps) {
                     {/* Organizer */}
                     {organizer && typeof organizer === 'object' && (
                         <div className="flex items-center gap-2 mb-4">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium">
-                                {organizer.name?.charAt(0).toUpperCase()}
+                            <div className="w-6 h-6 rounded-full overflow-hidden bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium">
+                                {organizer.avatar ? (
+                                    <img src={organizer.avatar} alt={organizer.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    organizer.name?.charAt(0).toUpperCase()
+                                )}
                             </div>
                             <span className="text-sm text-gray-400">{organizer.name}</span>
                             {organizer.isVerified && (

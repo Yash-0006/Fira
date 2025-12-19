@@ -16,7 +16,7 @@ export default function VenueCard({ venue }: VenueCardProps) {
 
     return (
         <Link href={`/venues/${venue._id}`}>
-            <div className="group bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-2xl overflow-hidden transition-all duration-300 hover:bg-white/[0.04] hover:border-white/[0.08] hover:scale-[1.02]">
+            <div className="group bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden transition-all duration-300 hover:border-white/10 hover:-translate-y-1">
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden">
                     {venue.images && venue.images.length > 0 ? (
@@ -33,12 +33,7 @@ export default function VenueCard({ venue }: VenueCardProps) {
                         </div>
                     )}
 
-                    {/* Status Badge */}
-                    {venue.status === 'approved' && (
-                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-medium">
-                            Verified
-                        </div>
-                    )}
+
 
                     {/* Rating */}
                     {venue.rating.count > 0 && (
@@ -53,6 +48,23 @@ export default function VenueCard({ venue }: VenueCardProps) {
 
                 {/* Content */}
                 <div className="p-5">
+                    {/* Owner Info */}
+                    {venue.owner && typeof venue.owner === 'object' && (
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="w-6 h-6 rounded-full overflow-hidden bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium">
+                                {(venue.owner as { avatar?: string; name?: string }).avatar ? (
+                                    <img src={(venue.owner as { avatar: string }).avatar} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                    (venue.owner as { name?: string }).name?.charAt(0).toUpperCase()
+                                )}
+                            </div>
+                            <span className="text-sm text-gray-400">{(venue.owner as { name?: string }).name}</span>
+                            <svg className="w-4 h-4 text-violet-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                    )}
+
                     <div className="flex justify-between items-start mb-2">
                         <h3 className="text-lg font-semibold text-white group-hover:text-violet-300 transition-colors line-clamp-1">
                             {venue.name}
@@ -81,21 +93,9 @@ export default function VenueCard({ venue }: VenueCardProps) {
 
                     {/* Amenities */}
                     {venue.amenities && venue.amenities.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                            {venue.amenities.slice(0, 3).map((amenity, index) => (
-                                <span
-                                    key={index}
-                                    className="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-gray-400 text-xs"
-                                >
-                                    {amenity}
-                                </span>
-                            ))}
-                            {venue.amenities.length > 3 && (
-                                <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-gray-500 text-xs">
-                                    +{venue.amenities.length - 3} more
-                                </span>
-                            )}
-                        </div>
+                        <p className="text-gray-500 text-sm line-clamp-1">
+                            {venue.amenities.join(' • ')}
+                        </p>
                     )}
                 </div>
             </div>
