@@ -13,6 +13,38 @@ router.post('/register', async (req, res) => {
     }
 });
 
+// POST /api/auth/verify-otp - Verify OTP and activate account
+router.post('/verify-otp', async (req, res) => {
+    try {
+        const { email, code } = req.body;
+        
+        if (!email || !code) {
+            return res.status(400).json({ error: 'Email and verification code are required' });
+        }
+
+        const result = await authService.verifyOTP({ email, code });
+        res.json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// POST /api/auth/resend-otp - Resend OTP
+router.post('/resend-otp', async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        const result = await authService.resendOTP({ email });
+        res.json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 // POST /api/auth/login - Login user
 router.post('/login', async (req, res) => {
     try {

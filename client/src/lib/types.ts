@@ -9,6 +9,8 @@ export interface User {
     phone: string | null;
     role: 'user' | 'venue_owner' | 'admin';
     isVerified: boolean;
+    emailVerified: boolean;
+    emailVerifiedAt?: string;
     verificationBadge: 'none' | 'brand' | 'band' | 'organizer';
     socialLinks: {
         instagram: string | null;
@@ -220,6 +222,24 @@ export interface ApiResponse<T> {
 export interface AuthResponse {
     user: User;
     token: string;
+}
+
+export interface RegisterResponse {
+    success: boolean;
+    message: string;
+    email: string;
+}
+
+export interface OTPVerifyResponse {
+    user: User;
+    token: string;
+    message: string;
+}
+
+export interface ResendOTPResponse {
+    success: boolean;
+    message: string;
+    cooldownSeconds: number;
 }
 
 export interface PaginatedResponse<T> {

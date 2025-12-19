@@ -10,7 +10,7 @@ interface AuthContextType {
     isLoading: boolean;
     isAuthenticated: boolean;
     login: (email: string, password: string) => Promise<void>;
-    register: (data: { email: string; password: string; name: string; role?: string }) => Promise<void>;
+    register: (data: { email: string; password: string; name: string; role?: string }) => Promise<{ success: boolean; message: string; email: string }>;
     logout: () => void;
     updateUser: (user: User) => void;
 }
@@ -50,14 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const register = useCallback(async (data: { email: string; password: string; name: string; role?: string }) => {
+        // Registration now returns a success message, not user data
+        // User will be logged in after OTP verification
         const response = await authApi.register(data);
-        const userData = response.user as User;
-        const authToken = response.token;
-
-        setUser(userData);
-        setToken(authToken);
-        localStorage.setItem('fira_token', authToken);
-        localStorage.setItem('fira_user', JSON.stringify(userData));
+        return response; // Return the response for the component to handle
     }, []);
 
     const logout = useCallback(() => {

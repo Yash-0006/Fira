@@ -4,3 +4,5 @@ export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 export { Modal } from './Modal';
 export { ToastProvider, useToast } from './Toast';
 export { Skeleton, CardSkeleton, EventCardSkeleton, VenueCardSkeleton, TableRowSkeleton } from './Skeleton';
+export { default as OTPInput } from './OTPInput';
+export { default as PasswordStrengthIndicator } from './PasswordStrengthIndicator';

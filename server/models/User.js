@@ -34,6 +34,14 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerifiedAt: {
+    type: Date,
+    default: null
+  },
   verificationBadge: {
     type: String,
     enum: ['none', 'brand', 'band', 'organizer'],

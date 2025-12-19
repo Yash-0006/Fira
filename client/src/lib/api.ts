@@ -50,7 +50,19 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 // Auth API
 export const authApi = {
     register: (data: { email: string; password: string; name: string; role?: string }) =>
-        request<{ user: unknown; token: string }>('/auth/register', {
+        request<{ success: boolean; message: string; email: string }>('/auth/register', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+
+    verifyOTP: (data: { email: string; code: string }) =>
+        request<{ user: unknown; token: string; message: string }>('/auth/verify-otp', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+
+    resendOTP: (data: { email: string }) =>
+        request<{ success: boolean; message: string; cooldownSeconds: number }>('/auth/resend-otp', {
             method: 'POST',
             body: JSON.stringify(data),
         }),
