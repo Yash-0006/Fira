@@ -84,9 +84,9 @@ const authService = {
      */
     async verifyOTP({ email, code }) {
         // Find OTP record
-        const otpRecord = await OTP.findOne({ 
-            email, 
-            verified: false 
+        const otpRecord = await OTP.findOne({
+            email,
+            verified: false
         }).sort({ createdAt: -1 });
 
         if (!otpRecord) {
@@ -141,7 +141,7 @@ const authService = {
 
         return {
             user: {
-                id: user._id,
+                _id: user._id,
                 email: user.email,
                 name: user.name,
                 role: user.role,
@@ -167,9 +167,9 @@ const authService = {
         }
 
         // Find existing OTP
-        const existingOTP = await OTP.findOne({ 
-            email, 
-            verified: false 
+        const existingOTP = await OTP.findOne({
+            email,
+            verified: false
         }).sort({ createdAt: -1 });
 
         // Check cooldown
@@ -234,7 +234,7 @@ const authService = {
 
         return {
             user: {
-                id: user._id,
+                _id: user._id,
                 email: user.email,
                 name: user.name,
                 role: user.role,

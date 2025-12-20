@@ -5,71 +5,52 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui';
+import { paymentsApi } from '@/lib/api';
 
-type PaymentTab = 'transactions' | 'earnings' | 'methods';
+type PaymentTab = 'transactions' | 'earnings';
 
-const mockTransactions = [
-    {
-        id: '1',
-        type: 'ticket',
-        description: 'Neon Nights Festival - 2 tickets',
-        amount: -2500,
-        date: '2025-12-20',
-        status: 'completed',
-    },
-    {
-        id: '2',
-        type: 'booking',
-        description: 'The Grand Ballroom - Venue Booking',
-        amount: -25000,
-        date: '2025-12-18',
-        status: 'completed',
-    },
-    {
-        id: '3',
-        type: 'refund',
-        description: 'Refund - Cancelled Event Tickets',
-        amount: 1200,
-        date: '2025-12-15',
-        status: 'completed',
-    },
-    {
-        id: '4',
-        type: 'earning',
-        description: 'Birthday Bash - Ticket Sales',
-        amount: 15000,
-        date: '2025-12-10',
-        status: 'completed',
-    },
-];
-
-const mockPaymentMethods = [
-    {
-        id: '1',
-        type: 'upi',
-        name: 'UPI',
-        details: 'user@paytm',
-        isDefault: true,
-    },
-    {
-        id: '2',
-        type: 'card',
-        name: 'Credit Card',
-        details: '•••• •••• •••• 4242',
-        isDefault: false,
-    },
-];
+interface Payment {
+    _id: string;
+    type: string;
+    description: string;
+    amount: number;
+    createdAt: string;
+    status: string;
+    referenceType?: string;
+}
 
 export default function PaymentsPage() {
     const router = useRouter();
     const { isAuthenticated, isLoading, user } = useAuth();
     const [activeTab, setActiveTab] = useState<PaymentTab>('transactions');
+    const [payments, setPayments] = useState<Payment[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
             router.push('/signin');
         }
     }, [isLoading, isAuthenticated, router]);
+
+    useEffect(() => {
+        const fetchPayments = async () => {
+            if (!user?._id) return;
+            try {
+                setLoading(true);
+                const data = await paymentsApi.getUserPayments(user._id) as Payment[];
+                setPayments(data);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to load payments');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (isAuthenticated && user?._id) {
+            fetchPayments();
+        }
+    }, [isAuthenticated, user?._id]);
 
     if (isLoading || !isAuthenticated) {
         return (
@@ -116,6 +97,7 @@ export default function PaymentsPage() {
                     </div>
                 );
             case 'earning':
+            case 'payout':
                 return (
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
                         <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,17 +106,27 @@ export default function PaymentsPage() {
                     </div>
                 );
             default:
-                return null;
+                return (
+                    <div className="w-10 h-10 rounded-xl bg-gray-500/20 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                );
         }
     };
 
-    const totalEarnings = mockTransactions
+    const totalEarnings = payments
         .filter((t) => t.amount > 0)
         .reduce((sum, t) => sum + t.amount, 0);
 
     const totalSpent = Math.abs(
-        mockTransactions.filter((t) => t.amount < 0).reduce((sum, t) => sum + t.amount, 0)
+        payments.filter((t) => t.amount < 0).reduce((sum, t) => sum + t.amount, 0)
     );
+
+    const filteredPayments = activeTab === 'transactions'
+        ? payments
+        : payments.filter(p => p.amount > 0);
 
     return (
         <DashboardLayout>
@@ -142,7 +134,7 @@ export default function PaymentsPage() {
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-white mb-2">Payments</h1>
-                    <p className="text-gray-400">Track your transactions and manage payment methods</p>
+                    <p className="text-gray-400">Track your transactions and earnings</p>
                 </div>
 
                 {/* Summary Cards */}
@@ -156,40 +148,55 @@ export default function PaymentsPage() {
                         <div className="text-2xl font-bold text-emerald-400">₹{totalEarnings.toLocaleString()}</div>
                     </div>
                     <div className="bg-gradient-to-r from-violet-500/20 to-pink-500/20 backdrop-blur-sm border border-violet-500/20 rounded-2xl p-5">
-                        <div className="text-sm text-violet-300 mb-1">Available Balance</div>
-                        <div className="text-2xl font-bold text-white">₹{(totalEarnings - totalSpent + 50000).toLocaleString()}</div>
+                        <div className="text-sm text-violet-300 mb-1">Net Balance</div>
+                        <div className="text-2xl font-bold text-white">₹{(totalEarnings - totalSpent).toLocaleString()}</div>
                     </div>
                 </div>
 
                 {/* Tabs */}
                 <div className="flex gap-2 mb-8">
-                    {(['transactions', 'earnings', 'methods'] as PaymentTab[]).map((tab) => (
+                    {(['transactions', 'earnings'] as PaymentTab[]).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={`px-5 py-2.5 rounded-full text-sm font-medium capitalize transition-all duration-200 ${activeTab === tab
-                                    ? 'bg-white text-black shadow-lg shadow-white/10'
-                                    : 'bg-white/[0.04] text-gray-400 hover:bg-white/[0.08] hover:text-white border border-white/[0.08]'
+                                ? 'bg-white text-black shadow-lg shadow-white/10'
+                                : 'bg-white/[0.04] text-gray-400 hover:bg-white/[0.08] hover:text-white border border-white/[0.08]'
                                 }`}
                         >
-                            {tab === 'methods' ? 'Payment Methods' : tab}
+                            {tab}
                         </button>
                     ))}
                 </div>
 
-                {/* Transactions Tab */}
-                {activeTab === 'transactions' && (
+                {/* Loading State */}
+                {loading && (
+                    <div className="flex items-center justify-center py-16">
+                        <div className="animate-spin w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full" />
+                    </div>
+                )}
+
+                {/* Error State */}
+                {error && (
+                    <div className="text-center py-16">
+                        <p className="text-red-400 mb-4">{error}</p>
+                        <Button onClick={() => window.location.reload()}>Try Again</Button>
+                    </div>
+                )}
+
+                {/* Transactions List */}
+                {!loading && !error && (
                     <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl overflow-hidden">
                         <div className="divide-y divide-white/[0.05]">
-                            {mockTransactions.map((transaction) => (
-                                <div key={transaction.id} className="flex items-center gap-4 p-4 hover:bg-white/[0.02] transition-colors">
-                                    {getTypeIcon(transaction.type)}
+                            {filteredPayments.map((payment) => (
+                                <div key={payment._id} className="flex items-center gap-4 p-4 hover:bg-white/[0.02] transition-colors">
+                                    {getTypeIcon(payment.referenceType || payment.type)}
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-white truncate">{transaction.description}</p>
-                                        <p className="text-xs text-gray-500">{formatDate(transaction.date)}</p>
+                                        <p className="text-sm font-medium text-white truncate">{payment.description}</p>
+                                        <p className="text-xs text-gray-500">{formatDate(payment.createdAt)}</p>
                                     </div>
-                                    <div className={`text-right font-semibold ${transaction.amount > 0 ? 'text-emerald-400' : 'text-white'}`}>
-                                        {transaction.amount > 0 ? '+' : ''}₹{Math.abs(transaction.amount).toLocaleString()}
+                                    <div className={`text-right font-semibold ${payment.amount > 0 ? 'text-emerald-400' : 'text-white'}`}>
+                                        {payment.amount > 0 ? '+' : ''}₹{Math.abs(payment.amount).toLocaleString()}
                                     </div>
                                 </div>
                             ))}
@@ -197,83 +204,14 @@ export default function PaymentsPage() {
                     </div>
                 )}
 
-                {/* Earnings Tab */}
-                {activeTab === 'earnings' && (
-                    <div className="space-y-6">
-                        <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6">
-                            <h3 className="text-lg font-semibold text-white mb-4">Earnings Summary</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-sm text-gray-400 mb-1">This Month</p>
-                                    <p className="text-xl font-bold text-emerald-400">₹15,000</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-400 mb-1">Last Month</p>
-                                    <p className="text-xl font-bold text-white">₹12,500</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl overflow-hidden">
-                            <div className="p-4 border-b border-white/[0.05]">
-                                <h3 className="font-semibold text-white">Recent Earnings</h3>
-                            </div>
-                            <div className="divide-y divide-white/[0.05]">
-                                {mockTransactions
-                                    .filter((t) => t.amount > 0)
-                                    .map((transaction) => (
-                                        <div key={transaction.id} className="flex items-center gap-4 p-4">
-                                            {getTypeIcon(transaction.type)}
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-white truncate">{transaction.description}</p>
-                                                <p className="text-xs text-gray-500">{formatDate(transaction.date)}</p>
-                                            </div>
-                                            <div className="text-right font-semibold text-emerald-400">
-                                                +₹{transaction.amount.toLocaleString()}
-                                            </div>
-                                        </div>
-                                    ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Payment Methods Tab */}
-                {activeTab === 'methods' && (
-                    <div className="space-y-4">
-                        {mockPaymentMethods.map((method) => (
-                            <div
-                                key={method.id}
-                                className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-5 flex items-center gap-4"
-                            >
-                                <div className="w-12 h-12 rounded-xl bg-white/[0.05] flex items-center justify-center">
-                                    {method.type === 'upi' ? (
-                                        <span className="text-lg font-bold text-violet-400">UPI</span>
-                                    ) : (
-                                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                        </svg>
-                                    )}
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <p className="font-medium text-white">{method.name}</p>
-                                        {method.isDefault && (
-                                            <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-xs">Default</span>
-                                        )}
-                                    </div>
-                                    <p className="text-sm text-gray-400">{method.details}</p>
-                                </div>
-                                <Button variant="ghost" size="sm">Edit</Button>
-                            </div>
-                        ))}
-
-                        <button className="w-full bg-white/[0.02] backdrop-blur-sm border border-dashed border-white/[0.15] rounded-2xl p-5 flex items-center justify-center gap-2 text-gray-400 hover:text-white hover:border-white/[0.25] transition-all">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            Add Payment Method
-                        </button>
+                {/* Empty State */}
+                {!loading && !error && filteredPayments.length === 0 && (
+                    <div className="text-center py-16">
+                        <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 className="text-xl font-semibold text-white mb-2">No {activeTab} yet</h3>
+                        <p className="text-gray-400">Your payment history will appear here.</p>
                     </div>
                 )}
             </div>

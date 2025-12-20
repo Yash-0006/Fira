@@ -17,6 +17,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper to normalize user object - ensures _id is always present
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const normalizeUser = (userData: any): User => {
+    if (!userData) return userData;
+    return {
+        ...userData,
+        _id: userData._id || userData.id, // Fallback to 'id' if '_id' is missing
+    };
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -30,7 +40,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (storedToken && storedUser) {
             setToken(storedToken);
             try {
-                setUser(JSON.parse(storedUser));
+                const parsedUser = JSON.parse(storedUser);
+                setUser(normalizeUser(parsedUser));
             } catch {
                 localStorage.removeItem('fira_user');
             }
@@ -40,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const login = useCallback(async (email: string, password: string) => {
         const response = await authApi.login({ email, password });
-        const userData = response.user as User;
+        const userData = normalizeUser(response.user);
         const authToken = response.token;
 
         setUser(userData);

@@ -190,6 +190,26 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             <div className="text-xs text-gray-500 truncate">{user?.email}</div>
                         </div>
                     </div>
+                    {/* Logout Button */}
+                    <button
+                        onClick={() => {
+                            // Get logout from context
+                            localStorage.removeItem('fira_token');
+                            localStorage.removeItem('fira_user');
+                            window.location.href = '/signin';
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 ${isExpanded ? '' : 'justify-center'
+                            }`}
+                        title={!isExpanded ? 'Logout' : undefined}
+                    >
+                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
+                            }`}>
+                            Logout
+                        </span>
+                    </button>
                 </div>
             </aside>
 

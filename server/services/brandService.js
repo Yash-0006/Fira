@@ -28,43 +28,68 @@ const brandService = {
             ];
         }
 
-        // Handle Geolocation
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const limitNum = parseInt(limit);
+
+        // Handle Geolocation with aggregation pipeline
         if (sort === 'nearby' && lat && lng) {
-            filter.location = {
-                $near: {
-                    $geometry: {
-                        type: 'Point',
-                        coordinates: [parseFloat(lng), parseFloat(lat)]
-                    },
-                    $maxDistance: 50000 // 50km
-                }
+            const pipeline = [
+                {
+                    $geoNear: {
+                        near: {
+                            type: 'Point',
+                            coordinates: [parseFloat(lng), parseFloat(lat)]
+                        },
+                        distanceField: 'distance',
+                        maxDistance: 50000, // 50km in meters
+                        query: filter,
+                        spherical: true
+                    }
+                },
+                { $skip: skip },
+                { $limit: limitNum },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'user',
+                        foreignField: '_id',
+                        as: 'user',
+                        pipeline: [{ $project: { name: 1, email: 1, verificationBadge: 1 } }]
+                    }
+                },
+                { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } }
+            ];
+
+            const brands = await BrandProfile.aggregate(pipeline);
+            const total = await BrandProfile.countDocuments(filter);
+
+            return {
+                brands,
+                totalPages: Math.ceil(total / limitNum),
+                currentPage: parseInt(page),
+                total
             };
         }
 
+        // Non-geospatial queries
         let sortOption = {};
         if (sort === 'top' || sort === 'trending') {
             sortOption = { 'stats.followers': -1 };
         } else if (sort === 'newest') {
             sortOption = { createdAt: -1 };
         }
-        // Note: For $near queries, sort is automatically by distance, explicit sort might conflict unless using aggregate
 
-        let queryExec = BrandProfile.find(filter).populate('user', 'name email verificationBadge');
-
-        // Apply sort if not geospatial
-        if (!(sort === 'nearby' && lat && lng)) {
-            queryExec = queryExec.sort(sortOption);
-        }
-
-        const brands = await queryExec
-            .limit(parseInt(limit))
-            .skip((parseInt(page) - 1) * parseInt(limit));
+        const brands = await BrandProfile.find(filter)
+            .populate('user', 'name email verificationBadge')
+            .sort(sortOption)
+            .limit(limitNum)
+            .skip(skip);
 
         const total = await BrandProfile.countDocuments(filter);
 
         return {
             brands,
-            totalPages: Math.ceil(total / limit),
+            totalPages: Math.ceil(total / limitNum),
             currentPage: parseInt(page),
             total
         };
@@ -82,7 +107,7 @@ const brandService = {
         if (!brand) throw new Error('Brand not found');
         return brand;
     },
-    
+
     // Get brand by User ID
     async getBrandByUserId(userId) {
         const brand = await BrandProfile.findOne({ user: userId });

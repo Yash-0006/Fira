@@ -11,6 +11,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Request logging middleware
+app.use((req, res, next) => {
+    const timestamp = new Date().toISOString();
+    console.log(`📥 [${timestamp}] ${req.method} ${req.url}`);
+    if (req.method !== 'GET' && Object.keys(req.body).length > 0) {
+        console.log('   Body:', JSON.stringify(req.body).substring(0, 200));
+    }
+    next();
+});
+
 // Connect to Database
 connectDB();
 

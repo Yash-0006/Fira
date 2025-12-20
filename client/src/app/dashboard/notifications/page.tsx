@@ -5,71 +5,51 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui';
+import { notificationsApi } from '@/lib/api';
 
 type NotificationCategory = 'all' | 'events' | 'bookings' | 'payments' | 'system';
 
-const mockNotifications = [
-    {
-        id: '1',
-        category: 'events',
-        title: 'Event Reminder',
-        message: 'Neon Nights Festival starts in 2 days! Don\'t forget to download your tickets.',
-        time: '2 hours ago',
-        read: false,
-    },
-    {
-        id: '2',
-        category: 'bookings',
-        title: 'Booking Confirmed',
-        message: 'Your booking at The Grand Ballroom has been confirmed for Dec 31, 2025.',
-        time: '1 day ago',
-        read: false,
-    },
-    {
-        id: '3',
-        category: 'payments',
-        title: 'Payment Received',
-        message: 'You received ₹15,000 from ticket sales for Birthday Bash.',
-        time: '2 days ago',
-        read: true,
-    },
-    {
-        id: '4',
-        category: 'events',
-        title: 'New Attendee',
-        message: '5 new people have registered for your Birthday Bash event.',
-        time: '3 days ago',
-        read: true,
-    },
-    {
-        id: '5',
-        category: 'system',
-        title: 'Profile Updated',
-        message: 'Your profile information has been successfully updated.',
-        time: '5 days ago',
-        read: true,
-    },
-    {
-        id: '6',
-        category: 'bookings',
-        title: 'Booking Request',
-        message: 'You have a new booking request for Skyline Terrace on Jan 15, 2026.',
-        time: '1 week ago',
-        read: true,
-    },
-];
+interface Notification {
+    _id: string;
+    category: string;
+    title: string;
+    message: string;
+    createdAt: string;
+    read: boolean;
+}
 
 export default function NotificationsPage() {
     const router = useRouter();
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isLoading, user } = useAuth();
     const [categoryFilter, setCategoryFilter] = useState<NotificationCategory>('all');
-    const [notifications, setNotifications] = useState(mockNotifications);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
             router.push('/signin');
         }
     }, [isLoading, isAuthenticated, router]);
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            if (!user?._id) return;
+            try {
+                setLoading(true);
+                const data = await notificationsApi.getUserNotifications(user._id) as Notification[];
+                setNotifications(data);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to load notifications');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (isAuthenticated && user?._id) {
+            fetchNotifications();
+        }
+    }, [isAuthenticated, user?._id]);
 
     if (isLoading || !isAuthenticated) {
         return (
@@ -87,14 +67,38 @@ export default function NotificationsPage() {
 
     const unreadCount = notifications.filter((n) => !n.read).length;
 
-    const markAsRead = (id: string) => {
-        setNotifications((prev) =>
-            prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-        );
+    const markAsRead = async (id: string) => {
+        try {
+            await notificationsApi.markAsRead(id);
+            setNotifications((prev) =>
+                prev.map((n) => (n._id === id ? { ...n, read: true } : n))
+            );
+        } catch (err) {
+            console.error('Failed to mark as read:', err);
+        }
     };
 
-    const markAllAsRead = () => {
-        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    const markAllAsRead = async () => {
+        if (!user?._id) return;
+        try {
+            await notificationsApi.markAllAsRead(user._id);
+            setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        } catch (err) {
+            console.error('Failed to mark all as read:', err);
+        }
+    };
+
+    const formatTime = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now.getTime() - date.getTime();
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const days = Math.floor(hours / 24);
+
+        if (hours < 1) return 'Just now';
+        if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+        return date.toLocaleDateString();
     };
 
     const getCategoryIcon = (category: string) => {
@@ -124,6 +128,7 @@ export default function NotificationsPage() {
                     </div>
                 );
             case 'system':
+            default:
                 return (
                     <div className="w-10 h-10 rounded-xl bg-gray-500/20 flex items-center justify-center">
                         <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -132,8 +137,6 @@ export default function NotificationsPage() {
                         </svg>
                     </div>
                 );
-            default:
-                return null;
         }
     };
 
@@ -162,8 +165,8 @@ export default function NotificationsPage() {
                             key={category}
                             onClick={() => setCategoryFilter(category)}
                             className={`px-4 py-2 rounded-full text-sm font-medium capitalize transition-all duration-200 ${categoryFilter === category
-                                    ? 'bg-white text-black shadow-lg shadow-white/10'
-                                    : 'bg-white/[0.04] text-gray-400 hover:bg-white/[0.08] hover:text-white border border-white/[0.08]'
+                                ? 'bg-white text-black shadow-lg shadow-white/10'
+                                : 'bg-white/[0.04] text-gray-400 hover:bg-white/[0.08] hover:text-white border border-white/[0.08]'
                                 }`}
                         >
                             {category}
@@ -171,36 +174,53 @@ export default function NotificationsPage() {
                     ))}
                 </div>
 
+                {/* Loading State */}
+                {loading && (
+                    <div className="flex items-center justify-center py-16">
+                        <div className="animate-spin w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full" />
+                    </div>
+                )}
+
+                {/* Error State */}
+                {error && (
+                    <div className="text-center py-16">
+                        <p className="text-red-400 mb-4">{error}</p>
+                        <Button onClick={() => window.location.reload()}>Try Again</Button>
+                    </div>
+                )}
+
                 {/* Notifications List */}
-                <div className="space-y-3">
-                    {filteredNotifications.map((notification) => (
-                        <div
-                            key={notification.id}
-                            onClick={() => markAsRead(notification.id)}
-                            className={`bg-white/[0.02] backdrop-blur-sm border rounded-2xl p-4 flex items-start gap-4 cursor-pointer transition-all duration-200 hover:bg-white/[0.04] ${notification.read
+                {!loading && !error && (
+                    <div className="space-y-3">
+                        {filteredNotifications.map((notification) => (
+                            <div
+                                key={notification._id}
+                                onClick={() => markAsRead(notification._id)}
+                                className={`bg-white/[0.02] backdrop-blur-sm border rounded-2xl p-4 flex items-start gap-4 cursor-pointer transition-all duration-200 hover:bg-white/[0.04] ${notification.read
                                     ? 'border-white/[0.05]'
                                     : 'border-violet-500/30 bg-violet-500/[0.03]'
-                                }`}
-                        >
-                            {getCategoryIcon(notification.category)}
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <h3 className={`font-medium ${notification.read ? 'text-white' : 'text-violet-300'}`}>
-                                        {notification.title}
-                                    </h3>
-                                    {!notification.read && (
-                                        <span className="w-2 h-2 rounded-full bg-violet-500" />
-                                    )}
+                                    }`}
+                            >
+                                {getCategoryIcon(notification.category)}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h3 className={`font-medium ${notification.read ? 'text-white' : 'text-violet-300'}`}>
+                                            {notification.title}
+                                        </h3>
+                                        {!notification.read && (
+                                            <span className="w-2 h-2 rounded-full bg-violet-500" />
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-gray-400 mb-2">{notification.message}</p>
+                                    <p className="text-xs text-gray-500">{formatTime(notification.createdAt)}</p>
                                 </div>
-                                <p className="text-sm text-gray-400 mb-2">{notification.message}</p>
-                                <p className="text-xs text-gray-500">{notification.time}</p>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Empty State */}
-                {filteredNotifications.length === 0 && (
+                {!loading && !error && filteredNotifications.length === 0 && (
                     <div className="text-center py-16">
                         <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />

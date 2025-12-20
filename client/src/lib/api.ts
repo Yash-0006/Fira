@@ -1,6 +1,6 @@
 // API Client for FIRA Backend
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 interface RequestOptions extends RequestInit {
     token?: string;
@@ -143,6 +143,7 @@ export const venuesApi = {
         });
         return request(`/venues/nearby?${params}`);
     },
+    getUserVenues: (userId: string) => request(`/venues?owner=${userId}`),
     getById: (id: string) => request(`/venues/${id}`),
     create: (data: unknown) =>
         request('/venues', {
@@ -180,6 +181,7 @@ export const eventsApi = {
         const query = params ? '?' + new URLSearchParams(params).toString() : '';
         return request(`/events/upcoming${query}`);
     },
+    getUserEvents: (userId: string) => request(`/events?organizer=${userId}`),
     getById: (id: string) => request(`/events/${id}`),
     create: (data: unknown) =>
         request('/events', {
@@ -217,10 +219,17 @@ export const bookingsApi = {
         const query = params ? '?' + new URLSearchParams(params).toString() : '';
         return request(`/bookings${query}`);
     },
+    getUserBookings: (userId: string) => request(`/bookings/user/${userId}`),
+    getVenueBookings: (venueId: string) => request(`/bookings/venue/${venueId}`),
     getById: (id: string) => request(`/bookings/${id}`),
     create: (data: unknown) =>
         request('/bookings', {
             method: 'POST',
+            body: JSON.stringify(data),
+        }),
+    update: (id: string, data: unknown) =>
+        request(`/bookings/${id}`, {
+            method: 'PUT',
             body: JSON.stringify(data),
         }),
     updateStatus: (id: string, status: string, reason?: string) =>
@@ -228,9 +237,10 @@ export const bookingsApi = {
             method: 'PUT',
             body: JSON.stringify({ status, reason }),
         }),
-    cancel: (id: string) =>
+    cancel: (id: string, reason?: string) =>
         request(`/bookings/${id}/cancel`, {
             method: 'POST',
+            body: JSON.stringify({ reason }),
         }),
 };
 
@@ -240,18 +250,21 @@ export const ticketsApi = {
         const query = params ? '?' + new URLSearchParams(params).toString() : '';
         return request(`/tickets${query}`);
     },
+    getUserTickets: (userId: string) => request(`/tickets/user/${userId}`),
+    getEventTickets: (eventId: string) => request(`/tickets/event/${eventId}`),
     getById: (id: string) => request(`/tickets/${id}`),
-    purchase: (data: { eventId: string; quantity: number; ticketType?: string }) =>
+    purchase: (data: { eventId: string; quantity: number; ticketType?: string; userId: string }) =>
         request('/tickets', {
             method: 'POST',
             body: JSON.stringify(data),
         }),
-    validate: (ticketId: string) =>
+    validate: (ticketId: string, qrCode: string) =>
         request(`/tickets/${ticketId}/validate`, {
             method: 'POST',
+            body: JSON.stringify({ qrCode }),
         }),
-    checkIn: (ticketId: string) =>
-        request(`/tickets/${ticketId}/checkin`, {
+    cancel: (ticketId: string) =>
+        request(`/tickets/${ticketId}/cancel`, {
             method: 'POST',
         }),
 };
@@ -262,6 +275,7 @@ export const paymentsApi = {
         const query = params ? '?' + new URLSearchParams(params).toString() : '';
         return request(`/payments${query}`);
     },
+    getUserPayments: (userId: string) => request(`/payments/user/${userId}`),
     getById: (id: string) => request(`/payments/${id}`),
     initiatePayment: (data: unknown) =>
         request('/payments/initiate', {
@@ -273,22 +287,38 @@ export const paymentsApi = {
             method: 'POST',
             body: JSON.stringify(data),
         }),
-    requestRefund: (id: string) =>
+    requestRefund: (id: string, data?: unknown) =>
         request(`/payments/${id}/refund`, {
             method: 'POST',
+            body: JSON.stringify(data || {}),
         }),
+    getPayouts: (params?: Record<string, string>) => {
+        const query = params ? '?' + new URLSearchParams(params).toString() : '';
+        return request(`/payments/payouts/all${query}`);
+    },
 };
 
 // Notifications API
 export const notificationsApi = {
-    getAll: () => request('/notifications'),
+    getAll: (userId?: string) => {
+        const query = userId ? `?userId=${userId}` : '';
+        return request(`/notifications${query}`);
+    },
+    getUserNotifications: (userId: string) => request(`/notifications?userId=${userId}`),
+    getUnreadCount: (userId: string) => request<{ count: number }>(`/notifications/unread?userId=${userId}`),
+    getById: (id: string) => request(`/notifications/${id}`),
     markAsRead: (id: string) =>
         request(`/notifications/${id}/read`, {
             method: 'PUT',
         }),
-    markAllAsRead: () =>
+    markAllAsRead: (userId: string) =>
         request('/notifications/read-all', {
             method: 'PUT',
+            body: JSON.stringify({ userId }),
+        }),
+    delete: (id: string) =>
+        request(`/notifications/${id}`, {
+            method: 'DELETE',
         }),
 };
 

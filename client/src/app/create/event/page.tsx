@@ -32,8 +32,9 @@ export default function CreateEventPage() {
     });
 
     useEffect(() => {
+        // Only redirect if auth check is complete AND user is not authenticated
         if (!isLoading && !isAuthenticated) {
-            router.push('/signin');
+            router.replace('/signin');
         }
     }, [isLoading, isAuthenticated, router]);
 
@@ -51,7 +52,8 @@ export default function CreateEventPage() {
         }
     };
 
-    if (isLoading || !isAuthenticated) {
+    // Show loading only while isLoading is true
+    if (isLoading) {
         return (
             <>
                 <PartyBackground />
@@ -61,6 +63,11 @@ export default function CreateEventPage() {
                 </main>
             </>
         );
+    }
+
+    // If not authenticated after loading, return null (redirect will happen)
+    if (!isAuthenticated) {
+        return null;
     }
 
     return (
