@@ -320,7 +320,7 @@ function getMockEvents(): Event[] {
     return [
         {
             _id: '1',
-            organizer: { _id: 'u1', name: 'DJ Cosmic', email: '', avatar: null, phone: null, role: 'user', isVerified: true, verificationBadge: 'brand', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
+            organizer: { _id: 'u1', name: 'DJ Cosmic', email: '', avatar: null, phone: null, role: 'user', isVerified: true, emailVerified: true, verificationBadge: 'brand', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
             venue: { _id: 'v1', name: 'Skyline Terrace', owner: '', description: '', images: [], videos: [], capacity: { min: 0, max: 0 }, pricing: { basePrice: 0, pricePerHour: null, currency: 'INR' }, amenities: [], rules: [], location: { type: 'Point', coordinates: [0, 0] }, address: { street: '', city: 'Mumbai', state: '', pincode: '', country: '' }, availability: [], blockedDates: [], status: 'approved', rating: { average: 0, count: 0 }, isActive: true, createdAt: '', updatedAt: '' },
             booking: null,
             name: 'Neon Nights Festival',
@@ -344,7 +344,7 @@ function getMockEvents(): Event[] {
         },
         {
             _id: '2',
-            organizer: { _id: 'u2', name: 'Indie Collective', email: '', avatar: null, phone: null, role: 'user', isVerified: true, verificationBadge: 'band', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
+            organizer: { _id: 'u2', name: 'Indie Collective', email: '', avatar: null, phone: null, role: 'user', isVerified: true, emailVerified: true, verificationBadge: 'band', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
             venue: { _id: 'v2', name: 'The Loft Studio', owner: '', description: '', images: [], videos: [], capacity: { min: 0, max: 0 }, pricing: { basePrice: 0, pricePerHour: null, currency: 'INR' }, amenities: [], rules: [], location: { type: 'Point', coordinates: [0, 0] }, address: { street: '', city: 'Bangalore', state: '', pincode: '', country: '' }, availability: [], blockedDates: [], status: 'approved', rating: { average: 0, count: 0 }, isActive: true, createdAt: '', updatedAt: '' },
             booking: null,
             name: 'Acoustic Evening',
@@ -368,7 +368,7 @@ function getMockEvents(): Event[] {
         },
         {
             _id: '3',
-            organizer: { _id: 'u3', name: 'TechMeet India', email: '', avatar: null, phone: null, role: 'user', isVerified: false, verificationBadge: 'none', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
+            organizer: { _id: 'u3', name: 'TechMeet India', email: '', avatar: null, phone: null, role: 'user', isVerified: false, emailVerified: true, verificationBadge: 'none', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
             venue: { _id: 'v3', name: 'Conference Center', owner: '', description: '', images: [], videos: [], capacity: { min: 0, max: 0 }, pricing: { basePrice: 0, pricePerHour: null, currency: 'INR' }, amenities: [], rules: [], location: { type: 'Point', coordinates: [0, 0] }, address: { street: '', city: 'Hyderabad', state: '', pincode: '', country: '' }, availability: [], blockedDates: [], status: 'approved', rating: { average: 0, count: 0 }, isActive: true, createdAt: '', updatedAt: '' },
             booking: null,
             name: 'Startup Mixer 2025',
@@ -392,7 +392,7 @@ function getMockEvents(): Event[] {
         },
         {
             _id: '4',
-            organizer: { _id: 'u4', name: 'Priya & Rahul', email: '', avatar: null, phone: null, role: 'user', isVerified: false, verificationBadge: 'none', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
+            organizer: { _id: 'u4', name: 'Priya & Rahul', email: '', avatar: null, phone: null, role: 'user', isVerified: false, emailVerified: true, verificationBadge: 'none', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
             venue: { _id: 'v4', name: 'Heritage Villa', owner: '', description: '', images: [], videos: [], capacity: { min: 0, max: 0 }, pricing: { basePrice: 0, pricePerHour: null, currency: 'INR' }, amenities: [], rules: [], location: { type: 'Point', coordinates: [0, 0] }, address: { street: '', city: 'Delhi', state: '', pincode: '', country: '' }, availability: [], blockedDates: [], status: 'approved', rating: { average: 0, count: 0 }, isActive: true, createdAt: '', updatedAt: '' },
             booking: null,
             name: 'Wedding Reception',
@@ -416,7 +416,7 @@ function getMockEvents(): Event[] {
         },
         {
             _id: '5',
-            organizer: { _id: 'u5', name: 'RetroBeats Club', email: '', avatar: null, phone: null, role: 'user', isVerified: true, verificationBadge: 'organizer', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
+            organizer: { _id: 'u5', name: 'RetroBeats Club', email: '', avatar: null, phone: null, role: 'user', isVerified: true, emailVerified: true, verificationBadge: 'organizer', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
             venue: { _id: 'v5', name: 'Beach Resort Pavilion', owner: '', description: '', images: [], videos: [], capacity: { min: 0, max: 0 }, pricing: { basePrice: 0, pricePerHour: null, currency: 'INR' }, amenities: [], rules: [], location: { type: 'Point', coordinates: [0, 0] }, address: { street: '', city: 'Chennai', state: '', pincode: '', country: '' }, availability: [], blockedDates: [], status: 'approved', rating: { average: 0, count: 0 }, isActive: true, createdAt: '', updatedAt: '' },
             booking: null,
             name: 'Retro Beach Party',
@@ -440,7 +440,7 @@ function getMockEvents(): Event[] {
         },
         {
             _id: '6',
-            organizer: { _id: 'u6', name: 'Sarah', email: '', avatar: null, phone: null, role: 'user', isVerified: false, verificationBadge: 'none', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
+            organizer: { _id: 'u6', name: 'Sarah', email: '', avatar: null, phone: null, role: 'user', isVerified: false, emailVerified: true, verificationBadge: 'none', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
             venue: { _id: 'v6', name: 'Garden Marquee', owner: '', description: '', images: [], videos: [], capacity: { min: 0, max: 0 }, pricing: { basePrice: 0, pricePerHour: null, currency: 'INR' }, amenities: [], rules: [], location: { type: 'Point', coordinates: [0, 0] }, address: { street: '', city: 'Pune', state: '', pincode: '', country: '' }, availability: [], blockedDates: [], status: 'approved', rating: { average: 0, count: 0 }, isActive: true, createdAt: '', updatedAt: '' },
             booking: null,
             name: 'Birthday Bash - Sarah Turns 30!',

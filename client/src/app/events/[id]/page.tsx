@@ -377,7 +377,7 @@ export default function EventDetailPage() {
 function getMockEvent(id: string): Event {
     return {
         _id: id,
-        organizer: { _id: 'u1', name: 'DJ Cosmic', email: '', avatar: null, phone: null, role: 'user', isVerified: true, verificationBadge: 'brand', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
+        organizer: { _id: 'u1', name: 'DJ Cosmic', email: '', avatar: null, phone: null, role: 'user', isVerified: true, emailVerified: true, verificationBadge: 'brand', socialLinks: { instagram: null, twitter: null, facebook: null, website: null }, followers: [], following: [], bankDetails: { accountName: null, accountNumber: null, ifscCode: null, bankName: null }, isActive: true, createdAt: '', updatedAt: '' },
         venue: { _id: 'v1', name: 'Skyline Terrace', owner: '', description: '', images: [], videos: [], capacity: { min: 0, max: 500 }, pricing: { basePrice: 50000, pricePerHour: null, currency: 'INR' }, amenities: [], rules: [], location: { type: 'Point', coordinates: [72.8777, 19.0760] }, address: { street: 'Marine Drive', city: 'Mumbai', state: 'Maharashtra', pincode: '', country: '' }, availability: [], blockedDates: [], status: 'approved', rating: { average: 4.8, count: 124 }, isActive: true, createdAt: '', updatedAt: '' },
         booking: null,
         name: 'Neon Nights Festival',
