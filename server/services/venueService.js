@@ -3,9 +3,10 @@ const Venue = require('../models/Venue');
 const venueService = {
     // Get all venues
     async getAllVenues(query = {}) {
-        const { page = 1, limit = 10, status, city, sort, search } = query;
+        const { page = 1, limit = 10, status, city, sort, search, owner } = query;
         const filter = {};
         if (status) filter.status = status;
+        if (owner) filter.owner = owner;
         if (city && city !== 'All') filter['address.city'] = new RegExp(city, 'i');
         if (search) {
             filter.$or = [

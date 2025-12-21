@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
+import { brandsApi } from '@/lib/api';
 
 const navItems = [
     { href: '/dashboard', icon: 'home', label: 'Overview' },
@@ -27,8 +28,36 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const pathname = usePathname();
     const { user } = useAuth();
     const [isExpanded, setIsExpanded] = useState(false);
+    const [hasBrand, setHasBrand] = useState(false);
+    const [hasVenues, setHasVenues] = useState(false);
 
-    const isVenueOwner = user?.role === 'venue_owner' || user?.role === 'admin';
+    // Check if user has a brand profile or venues
+    useEffect(() => {
+        const checkUserAssets = async () => {
+            if (!user?._id) return;
+
+            // Check for brand
+            try {
+                const brand = await brandsApi.getMyProfile(user._id);
+                setHasBrand(!!brand);
+            } catch {
+                setHasBrand(false);
+            }
+
+            // Check for venues
+            try {
+                const { venuesApi } = await import('@/lib/api');
+                const response = await venuesApi.getUserVenues(user._id) as { venues: any[] };
+                const venues = response?.venues || [];
+                setHasVenues(venues.length > 0);
+            } catch {
+                setHasVenues(false);
+            }
+        };
+        checkUserAssets();
+    }, [user?._id]);
+
+    const isVenueOwner = user?.role === 'venue_owner' || user?.role === 'admin' || hasVenues;
 
     const getIcon = (name: string) => {
         const icons: Record<string, React.ReactNode> = {
@@ -65,6 +94,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             'building-office': (
                 <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2 21h20M2 21V3h8v18m0-18h12v18m-12 0V8m0 0h12" />
+                </svg>
+            ),
+            'sparkles': (
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                 </svg>
             ),
         };
@@ -174,6 +208,32 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                     </Link>
                                 );
                             })}
+                        </>
+                    )}
+
+                    {/* Brand Section */}
+                    {hasBrand && (
+                        <>
+                            <div className={`pt-4 pb-2 transition-all duration-300 ${isExpanded ? '' : 'hidden'}`}>
+                                <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    Brand Profile
+                                </div>
+                            </div>
+                            <Link
+                                href="/dashboard/brand"
+                                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${isExpanded ? '' : 'justify-center'
+                                    } ${pathname.startsWith('/dashboard/brand')
+                                        ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/30 shadow-lg shadow-cyan-500/10'
+                                        : 'text-gray-400 hover:bg-white/[0.06] hover:text-white'
+                                    }`}
+                                title={!isExpanded ? 'My Brand' : undefined}
+                            >
+                                {getIcon('sparkles')}
+                                <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
+                                    }`}>
+                                    My Brand
+                                </span>
+                            </Link>
                         </>
                     )}
                 </nav>

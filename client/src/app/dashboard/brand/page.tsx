@@ -1,0 +1,537 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import { Button } from '@/components/ui';
+import { brandsApi, uploadApi } from '@/lib/api';
+
+interface BrandProfile {
+    _id: string;
+    name: string;
+    type: 'brand' | 'band' | 'organizer';
+    bio: string;
+    coverPhoto: string | null;
+    profilePhoto: string | null;
+    address: string | null;
+    socialLinks: {
+        instagram: string | null;
+        twitter: string | null;
+        facebook: string | null;
+        website: string | null;
+        spotify: string | null;
+        youtube: string | null;
+    };
+    stats: {
+        followers: number;
+        events: number;
+        views: number;
+    };
+    members: { name: string; role: string; photoUrl?: string }[];
+    createdAt: string;
+}
+
+export default function BrandDashboardPage() {
+    const router = useRouter();
+    const { isAuthenticated, isLoading, user } = useAuth();
+    const [brand, setBrand] = useState<BrandProfile | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [editTab, setEditTab] = useState<'basic' | 'social' | 'photos'>('basic');
+    const [editForm, setEditForm] = useState({
+        name: '',
+        bio: '',
+        address: '',
+        instagram: '',
+        twitter: '',
+        facebook: '',
+        website: '',
+        spotify: '',
+        youtube: '',
+    });
+    const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
+    const [coverPhotoFile, setCoverPhotoFile] = useState<File | null>(null);
+    const [profilePreview, setProfilePreview] = useState('');
+    const [coverPreview, setCoverPreview] = useState('');
+
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated) {
+            router.push('/signin');
+        }
+    }, [isLoading, isAuthenticated, router]);
+
+    const fetchBrand = async () => {
+        if (!user?._id) return;
+        try {
+            setLoading(true);
+            const brandData = await brandsApi.getMyProfile(user._id) as BrandProfile;
+            setBrand(brandData);
+            if (brandData) {
+                setEditForm({
+                    name: brandData.name || '',
+                    bio: brandData.bio || '',
+                    address: brandData.address || '',
+                    instagram: brandData.socialLinks?.instagram || '',
+                    twitter: brandData.socialLinks?.twitter || '',
+                    facebook: brandData.socialLinks?.facebook || '',
+                    website: brandData.socialLinks?.website || '',
+                    spotify: brandData.socialLinks?.spotify || '',
+                    youtube: brandData.socialLinks?.youtube || '',
+                });
+            }
+        } catch (err) {
+            setError('Failed to load brand profile');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isAuthenticated && user?._id) {
+            fetchBrand();
+        }
+    }, [isAuthenticated, user?._id]);
+
+    const handleSaveProfile = async () => {
+        if (!user?._id) return;
+        setIsSaving(true);
+        try {
+            let profilePhotoUrl = brand?.profilePhoto || undefined;
+            let coverPhotoUrl = brand?.coverPhoto || undefined;
+
+            // Upload photos if changed
+            if (profilePhotoFile) {
+                const result = await uploadApi.single(profilePhotoFile, 'brands');
+                profilePhotoUrl = result.url;
+            }
+            if (coverPhotoFile) {
+                const result = await uploadApi.single(coverPhotoFile, 'brands');
+                coverPhotoUrl = result.url;
+            }
+
+            await brandsApi.create({
+                userId: user._id,
+                name: editForm.name,
+                bio: editForm.bio,
+                address: editForm.address,
+                profilePhoto: profilePhotoUrl,
+                coverPhoto: coverPhotoUrl,
+                socialLinks: {
+                    instagram: editForm.instagram || null,
+                    twitter: editForm.twitter || null,
+                    facebook: editForm.facebook || null,
+                    website: editForm.website || null,
+                    spotify: editForm.spotify || null,
+                    youtube: editForm.youtube || null,
+                },
+            });
+            // Reset photo states
+            setProfilePhotoFile(null);
+            setCoverPhotoFile(null);
+            setProfilePreview('');
+            setCoverPreview('');
+            // Refresh data
+            await fetchBrand();
+            setIsEditing(false);
+        } catch (err) {
+            setError('Failed to update profile');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setProfilePhotoFile(file);
+            setProfilePreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleCoverPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setCoverPhotoFile(file);
+            setCoverPreview(URL.createObjectURL(file));
+        }
+    };
+
+    if (isLoading || !isAuthenticated) {
+        return (
+            <DashboardLayout>
+                <div className="min-h-screen flex items-center justify-center">
+                    <div className="animate-spin w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full" />
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    if (loading) {
+        return (
+            <DashboardLayout>
+                <div className="min-h-screen flex items-center justify-center">
+                    <div className="animate-spin w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full" />
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    if (!brand) {
+        return (
+            <DashboardLayout>
+                <div className="min-h-screen flex items-center justify-center p-6">
+                    <div className="text-center">
+                        <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                        <h3 className="text-xl font-semibold text-white mb-2">No Brand Profile</h3>
+                        <p className="text-gray-400 mb-6">Create your brand profile to build your presence.</p>
+                        <Link href="/create/brand">
+                            <Button>Create Brand Profile</Button>
+                        </Link>
+                    </div>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    return (
+        <DashboardLayout>
+            <div className="p-6 lg:p-8">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-white mb-2">My Brand</h1>
+                        <p className="text-gray-400">Manage your brand profile and content</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <Link href={`/brands/${brand._id}`}>
+                            <Button variant="secondary">View Public Profile</Button>
+                        </Link>
+                        <Button onClick={() => setIsEditing(!isEditing)}>
+                            {isEditing ? 'Cancel' : 'Edit Profile'}
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Error */}
+                {error && (
+                    <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl mb-6">
+                        {error}
+                    </div>
+                )}
+
+                {/* Profile Card */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Main Info */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Cover & Profile */}
+                        <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl overflow-hidden">
+                            {/* Cover Photo */}
+                            <div className="relative h-48 bg-gradient-to-br from-cyan-500/30 to-blue-500/30">
+                                {brand.coverPhoto && (
+                                    <img src={brand.coverPhoto} alt="Cover" className="w-full h-full object-cover" />
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                            </div>
+
+                            <div className="relative px-6 pb-6">
+                                {/* Profile Photo */}
+                                <div className="absolute -top-16 left-6">
+                                    <div className="w-32 h-32 rounded-full border-4 border-[#0a0a0a] overflow-hidden bg-gray-800">
+                                        {brand.profilePhoto ? (
+                                            <img src={brand.profilePhoto} alt={brand.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-500 text-white text-3xl font-bold">
+                                                {brand.name.charAt(0)}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="pt-20">
+                                    {isEditing ? (
+                                        <div className="space-y-4">
+                                            {/* Tabs */}
+                                            <div className="flex gap-2 border-b border-white/10 pb-3">
+                                                {['basic', 'social', 'photos'].map((tab) => (
+                                                    <button
+                                                        key={tab}
+                                                        onClick={() => setEditTab(tab as 'basic' | 'social' | 'photos')}
+                                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${editTab === tab
+                                                                ? 'bg-cyan-500/20 text-cyan-400'
+                                                                : 'text-gray-400 hover:text-white'
+                                                            }`}
+                                                    >
+                                                        {tab === 'basic' ? 'Basic Info' : tab === 'social' ? 'Social Links' : 'Photos'}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {/* Basic Info Tab */}
+                                            {editTab === 'basic' && (
+                                                <>
+                                                    <div>
+                                                        <label className="block text-sm text-gray-400 mb-1">Name</label>
+                                                        <input
+                                                            type="text"
+                                                            value={editForm.name}
+                                                            onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                                                            className="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm text-gray-400 mb-1">Bio</label>
+                                                        <textarea
+                                                            value={editForm.bio}
+                                                            onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                                                            rows={3}
+                                                            className="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm text-gray-400 mb-1">Location</label>
+                                                        <input
+                                                            type="text"
+                                                            value={editForm.address}
+                                                            onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                                                            className="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white"
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {/* Social Links Tab */}
+                                            {editTab === 'social' && (
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm text-gray-400 mb-1">Instagram</label>
+                                                        <input
+                                                            type="url"
+                                                            value={editForm.instagram}
+                                                            onChange={(e) => setEditForm(prev => ({ ...prev, instagram: e.target.value }))}
+                                                            placeholder="https://instagram.com/..."
+                                                            className="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder:text-gray-600"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm text-gray-400 mb-1">Twitter</label>
+                                                        <input
+                                                            type="url"
+                                                            value={editForm.twitter}
+                                                            onChange={(e) => setEditForm(prev => ({ ...prev, twitter: e.target.value }))}
+                                                            placeholder="https://twitter.com/..."
+                                                            className="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder:text-gray-600"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm text-gray-400 mb-1">Facebook</label>
+                                                        <input
+                                                            type="url"
+                                                            value={editForm.facebook}
+                                                            onChange={(e) => setEditForm(prev => ({ ...prev, facebook: e.target.value }))}
+                                                            placeholder="https://facebook.com/..."
+                                                            className="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder:text-gray-600"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm text-gray-400 mb-1">Website</label>
+                                                        <input
+                                                            type="url"
+                                                            value={editForm.website}
+                                                            onChange={(e) => setEditForm(prev => ({ ...prev, website: e.target.value }))}
+                                                            placeholder="https://..."
+                                                            className="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder:text-gray-600"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm text-gray-400 mb-1">Spotify</label>
+                                                        <input
+                                                            type="url"
+                                                            value={editForm.spotify}
+                                                            onChange={(e) => setEditForm(prev => ({ ...prev, spotify: e.target.value }))}
+                                                            placeholder="https://open.spotify.com/..."
+                                                            className="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder:text-gray-600"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm text-gray-400 mb-1">YouTube</label>
+                                                        <input
+                                                            type="url"
+                                                            value={editForm.youtube}
+                                                            onChange={(e) => setEditForm(prev => ({ ...prev, youtube: e.target.value }))}
+                                                            placeholder="https://youtube.com/..."
+                                                            className="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder:text-gray-600"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Photos Tab */}
+                                            {editTab === 'photos' && (
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="block text-sm text-gray-400 mb-2">Profile Photo</label>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-800 flex-shrink-0">
+                                                                {profilePreview || brand.profilePhoto ? (
+                                                                    <img src={profilePreview || brand.profilePhoto || ''} alt="Profile" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-500 text-white text-2xl font-bold">
+                                                                        {brand.name.charAt(0)}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <label className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white cursor-pointer hover:bg-white/10 transition-colors">
+                                                                Choose File
+                                                                <input type="file" accept="image/*" onChange={handleProfilePhotoChange} className="hidden" />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm text-gray-400 mb-2">Cover Photo</label>
+                                                        <div className="relative h-32 rounded-lg overflow-hidden bg-gray-800">
+                                                            {coverPreview || brand.coverPhoto ? (
+                                                                <img src={coverPreview || brand.coverPhoto || ''} alt="Cover" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-500/30 to-blue-500/30">
+                                                                    <span className="text-gray-500">No cover photo</span>
+                                                                </div>
+                                                            )}
+                                                            <label className="absolute bottom-2 right-2 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-lg text-white text-sm cursor-pointer hover:bg-black/80 transition-colors">
+                                                                Change Cover
+                                                                <input type="file" accept="image/*" onChange={handleCoverPhotoChange} className="hidden" />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <Button onClick={handleSaveProfile} disabled={isSaving}>
+                                                {isSaving ? 'Saving...' : 'Save Changes'}
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <h2 className="text-2xl font-bold text-white">{brand.name}</h2>
+                                                <span className="px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-400 text-xs font-medium capitalize">
+                                                    {brand.type}
+                                                </span>
+                                            </div>
+                                            <p className="text-gray-400 mb-4">{brand.bio || 'No bio yet'}</p>
+                                            {brand.address && (
+                                                <div className="flex items-center gap-2 text-gray-500 text-sm">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    </svg>
+                                                    {brand.address}
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Social Links */}
+                        <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-4">Social Links</h3>
+                            <div className="flex flex-wrap gap-3">
+                                {Object.entries(brand.socialLinks || {}).map(([platform, link]) => (
+                                    link && (
+                                        <a
+                                            key={platform}
+                                            href={link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-4 py-2 bg-white/5 rounded-lg text-gray-300 hover:bg-white/10 transition-colors capitalize text-sm"
+                                        >
+                                            {platform}
+                                        </a>
+                                    )
+                                ))}
+                                {!Object.values(brand.socialLinks || {}).some(v => v) && (
+                                    <p className="text-gray-500">No social links added</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Team Members */}
+                        {brand.members && brand.members.length > 0 && (
+                            <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">Team Members</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    {brand.members.map((member, index) => (
+                                        <div key={index} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                                            <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white font-medium">
+                                                {member.name.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-medium text-white">{member.name}</div>
+                                                <div className="text-xs text-gray-500">{member.role}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Stats Sidebar */}
+                    <div className="space-y-6">
+                        {/* Stats Cards */}
+                        <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-4">Stats</h3>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-400">Followers</span>
+                                    <span className="text-white font-semibold">{brand.stats.followers.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-400">Events</span>
+                                    <span className="text-white font-semibold">{brand.stats.events}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-400">Profile Views</span>
+                                    <span className="text-white font-semibold">{brand.stats.views.toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+                            <div className="space-y-3">
+                                <Link href="/create/event" className="block">
+                                    <Button variant="secondary" className="w-full justify-start">
+                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Create Event
+                                    </Button>
+                                </Link>
+                                <Button variant="ghost" className="w-full justify-start">
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    Create Post
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Member Since */}
+                        <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6">
+                            <div className="text-sm text-gray-500">Member since</div>
+                            <div className="text-white font-medium">{new Date(brand.createdAt).toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </DashboardLayout>
+    );
+}

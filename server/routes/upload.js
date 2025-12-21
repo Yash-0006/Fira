@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { upload, uploadSingle, uploadMultiple } = require('../services/uploadService');
+const { upload, uploadSingle, uploadMultiple, deleteImage } = require('../services/uploadService');
 
 // POST /api/upload/single - Upload single image
 router.post('/single', upload.single('image'), async (req, res) => {
@@ -40,6 +40,21 @@ router.post('/multiple', upload.array('images', 5), async (req, res) => {
     } catch (error) {
         console.error('Upload error:', error);
         res.status(500).json({ error: error.message || 'Upload failed' });
+    }
+});
+
+// DELETE /api/upload/delete - Delete image from Cloudinary
+router.delete('/delete', async (req, res) => {
+    try {
+        const { publicId } = req.body;
+        if (!publicId) {
+            return res.status(400).json({ error: 'Public ID is required' });
+        }
+        await deleteImage(publicId);
+        res.json({ success: true, message: 'Image deleted successfully' });
+    } catch (error) {
+        console.error('Delete error:', error);
+        res.status(500).json({ error: error.message || 'Delete failed' });
     }
 });
 

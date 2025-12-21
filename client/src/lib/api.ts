@@ -388,6 +388,12 @@ export const uploadApi = {
 
         return response.json();
     },
+    delete: async (publicId: string): Promise<{ success: boolean }> => {
+        return request('/upload/delete', {
+            method: 'DELETE',
+            body: JSON.stringify({ publicId }),
+        });
+    },
 };
 
 export { ApiError };
