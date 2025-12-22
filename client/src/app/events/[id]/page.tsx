@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import PartyBackground from '@/components/PartyBackground';
 import { Button, Modal, Input } from '@/components/ui';
-import { eventsApi } from '@/lib/api';
+import { eventsApi, ticketsApi } from '@/lib/api';
 import { Event, User, Venue } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
@@ -21,6 +21,7 @@ export default function EventDetailPage() {
     const [isPrivateCodeModalOpen, setIsPrivateCodeModalOpen] = useState(false);
     const [ticketQuantity, setTicketQuantity] = useState(1);
     const [privateCode, setPrivateCode] = useState('');
+    const [isPurchasing, setIsPurchasing] = useState(false);
 
     useEffect(() => {
         if (params.id) {
@@ -65,11 +66,24 @@ export default function EventDetailPage() {
     };
 
     const purchaseTickets = async () => {
+        if (!user?._id || !event?._id) return;
+        setIsPurchasing(true);
         try {
+            await ticketsApi.purchase({
+                userId: user._id,
+                eventId: event._id,
+                quantity: ticketQuantity,
+                ticketType: 'general'
+            });
             showToast(`${ticketQuantity} ticket(s) booked successfully!`, 'success');
             setIsTicketModalOpen(false);
-        } catch {
-            showToast('Failed to purchase tickets', 'error');
+            // Refresh event to update spots left
+            fetchEvent(event._id);
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            showToast(error.message || 'Failed to purchase tickets', 'error');
+        } finally {
+            setIsPurchasing(false);
         }
     };
 
@@ -363,8 +377,8 @@ export default function EventDetailPage() {
                                 {formatPrice(event.ticketPrice * ticketQuantity)}
                             </span>
                         </div>
-                        <Button className="w-full" size="lg" onClick={purchaseTickets}>
-                            {event.ticketPrice === 0 ? 'Confirm Registration' : 'Proceed to Payment'}
+                        <Button className="w-full" size="lg" onClick={purchaseTickets} disabled={isPurchasing}>
+                            {isPurchasing ? 'Processing...' : event.ticketPrice === 0 ? 'Confirm Registration' : 'Get Tickets'}
                         </Button>
                     </div>
                 </div>

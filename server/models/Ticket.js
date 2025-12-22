@@ -4,8 +4,7 @@ const crypto = require('crypto');
 const ticketSchema = new mongoose.Schema({
     ticketId: {
         type: String,
-        unique: true,
-        required: true
+        unique: true
     },
     user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -18,8 +17,7 @@ const ticketSchema = new mongoose.Schema({
         required: true
     },
     qrCode: {
-        type: String,
-        required: true
+        type: String
     },
     ticketType: {
         type: String,
@@ -63,22 +61,6 @@ const ticketSchema = new mongoose.Schema({
     }
 }, {
     timestamps: true
-});
-
-// Generate unique ticket ID and QR code before saving
-ticketSchema.pre('save', function (next) {
-    if (!this.ticketId) {
-        this.ticketId = 'TKT-' + crypto.randomBytes(6).toString('hex').toUpperCase();
-    }
-    if (!this.qrCode) {
-        // QR code contains ticket ID and event ID for validation
-        this.qrCode = Buffer.from(JSON.stringify({
-            ticketId: this.ticketId,
-            eventId: this.event.toString(),
-            userId: this.user.toString()
-        })).toString('base64');
-    }
-    next();
 });
 
 // Indexes

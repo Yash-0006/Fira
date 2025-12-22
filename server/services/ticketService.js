@@ -61,6 +61,8 @@ const ticketService = {
 
     // Purchase ticket
     async purchaseTicket({ userId, eventId, quantity = 1, ticketType = 'general' }) {
+        const crypto = require('crypto');
+
         const event = await Event.findById(eventId);
         if (!event) {
             throw new Error('Event not found');
@@ -70,10 +72,20 @@ const ticketService = {
             throw new Error('Not enough tickets available');
         }
 
+        // Generate ticket ID and QR code
+        const ticketId = 'TKT-' + crypto.randomBytes(6).toString('hex').toUpperCase();
+        const qrCode = Buffer.from(JSON.stringify({
+            ticketId,
+            eventId,
+            userId
+        })).toString('base64');
+
         // Create ticket
         const ticket = await Ticket.create({
             user: userId,
             event: eventId,
+            ticketId,
+            qrCode,
             ticketType,
             quantity,
             price: event.ticketPrice * quantity
