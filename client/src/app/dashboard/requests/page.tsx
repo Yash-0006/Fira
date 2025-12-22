@@ -60,8 +60,8 @@ export default function BookingRequestsPage() {
     const fetchVenues = async () => {
         if (!user?._id) return;
         try {
-            const data = await venuesApi.getUserVenues(user._id);
-            setVenues(data.venues || data || []);
+            const data = await venuesApi.getUserVenues(user._id) as { venues?: Venue[] } | Venue[];
+            setVenues(Array.isArray(data) ? data : data.venues || []);
         } catch (error) {
             console.error('Failed to fetch venues:', error);
         }
@@ -74,11 +74,11 @@ export default function BookingRequestsPage() {
 
             if (selectedVenue === 'all') {
                 for (const venue of venues) {
-                    const data = await bookingsApi.getVenueBookings(venue._id);
+                    const data = await bookingsApi.getVenueBookings(venue._id) as Booking[];
                     allBookings = [...allBookings, ...(data || [])];
                 }
             } else {
-                const data = await bookingsApi.getVenueBookings(selectedVenue);
+                const data = await bookingsApi.getVenueBookings(selectedVenue) as Booking[];
                 allBookings = data || [];
             }
 

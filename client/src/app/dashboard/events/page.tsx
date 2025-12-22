@@ -203,13 +203,24 @@ export default function EventsPage() {
                                     )}
 
                                     <div className="mt-4 pt-4 border-t border-white/[0.05] flex gap-2">
-                                        <Link href={`/events/${event._id}`} className="flex-1">
-                                            <Button variant="secondary" size="sm" className="w-full">
+                                        {organizingEvents.some(e => e._id === event._id) ? (
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                className="w-full flex-1"
+                                                onClick={() => router.push(`/dashboard/events/${event._id}`)}
+                                            >
+                                                Manage Event
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                className="w-full flex-1"
+                                                onClick={() => router.push(`/events/${event._id}`)}
+                                            >
                                                 View Details
                                             </Button>
-                                        </Link>
-                                        {activeTab === 'organizing' && (
-                                            <Button variant="ghost" size="sm">Manage</Button>
                                         )}
                                     </div>
                                 </div>
