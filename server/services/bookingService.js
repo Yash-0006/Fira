@@ -73,6 +73,8 @@ const bookingService = {
 
     // Update booking status (accept/reject)
     async updateBookingStatus(id, { status, rejectionReason, modifiedDates }) {
+        const Venue = require('../models/Venue');
+
         const updateData = {
             status,
             'ownerResponse.respondedAt': new Date()
@@ -90,14 +92,44 @@ const bookingService = {
             id,
             { $set: updateData },
             { new: true }
-        );
+        ).populate('venue');
 
         if (!booking) {
             throw new Error('Booking not found');
         }
 
-        // TODO: Send notification to user
-        // TODO: If accepted, trigger payment process
+        // If accepted, add to venue's blockedDates
+        if (status === 'accepted' && booking.venue) {
+            const bookingDateStr = new Date(booking.bookingDate).toISOString().split('T')[0];
+            const venue = await Venue.findById(booking.venue._id || booking.venue);
+
+            if (venue) {
+                // Find existing date entry or create new one
+                let dateEntry = venue.blockedDates?.find(d => d.date === bookingDateStr);
+
+                if (dateEntry) {
+                    // Add slot to existing date
+                    dateEntry.slots.push({
+                        startTime: booking.startTime,
+                        endTime: booking.endTime,
+                        type: 'booked'
+                    });
+                } else {
+                    // Create new date entry
+                    if (!venue.blockedDates) venue.blockedDates = [];
+                    venue.blockedDates.push({
+                        date: bookingDateStr,
+                        slots: [{
+                            startTime: booking.startTime,
+                            endTime: booking.endTime,
+                            type: 'booked'
+                        }]
+                    });
+                }
+
+                await venue.save();
+            }
+        }
 
         return booking;
     },

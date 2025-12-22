@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import PartyBackground from '@/components/PartyBackground';
 import { Button, Modal } from '@/components/ui';
-import { venuesApi } from '@/lib/api';
+import { venuesApi, bookingsApi } from '@/lib/api';
 import { Venue } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/Toast';
 export default function VenueDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const { showToast } = useToast();
     const [venue, setVenue] = useState<Venue | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +41,61 @@ export default function VenueDetailPage() {
         guests: 50,
         purpose: '',
     });
+    const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+    const [calendarMonth, setCalendarMonth] = useState(new Date());
+
+    // Get availability info for tooltip - returns all slots
+    const getDateAvailability = (date: Date) => {
+        const dayOfWeek = date.getDay();
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateKey = `${year}-${month}-${day}`;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const blockedEntry = (venue as any)?.blockedDates?.find((b: any) => b.date === dateKey);
+        const weeklySlot = venue?.availability?.find(a => a.dayOfWeek === dayOfWeek);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const daySlot = (venue as any)?.daySlots?.find((s: any) =>
+            new Date(s.date).toDateString() === date.toDateString()
+        );
+
+        const defaultStart = weeklySlot?.startTime || '09:00';
+        const defaultEnd = weeklySlot?.endTime || '22:00';
+        const slots: { startTime: string; endTime: string; type: 'busy' | 'booked' | 'available' }[] = [];
+
+        // Add booked slots if day is booked
+        if (daySlot?.isBooked) {
+            slots.push({ startTime: defaultStart, endTime: defaultEnd, type: 'booked' });
+        }
+
+        // Add blocked slots from venue's blockedDates
+        if (blockedEntry?.slots && blockedEntry.slots.length > 0) {
+            blockedEntry.slots.forEach((s: any) => {
+                slots.push({ startTime: s.startTime, endTime: s.endTime, type: s.type || 'busy' });
+            });
+        }
+
+        // Determine overall color
+        let color = 'green';
+        if (daySlot?.isBooked || (slots.length > 0 && slots.some(s => s.startTime === defaultStart && s.endTime === defaultEnd))) {
+            color = 'red';
+        } else if (slots.length > 0) {
+            color = 'orange';
+        } else if (daySlot && !daySlot.isAvailable) {
+            color = 'gray';
+        } else if (!weeklySlot?.isAvailable && weeklySlot) {
+            color = 'gray';
+        }
+
+        return {
+            slots,
+            defaultStart,
+            defaultEnd,
+            color,
+            isClosed: (weeklySlot && !weeklySlot.isAvailable) || (daySlot && !daySlot.isAvailable)
+        };
+    };
 
     useEffect(() => {
         if (params.id) {
@@ -76,10 +131,33 @@ export default function VenueDetailPage() {
     };
 
     const submitBooking = async () => {
+        if (!venue || !user) return;
+
         try {
+            // Calculate total price
+            const startHour = parseInt(bookingData.startTime.split(':')[0]);
+            const endHour = parseInt(bookingData.endTime.split(':')[0]);
+            const hours = endHour - startHour;
+            const hourlyRate = venue.pricing.pricePerHour || 0;
+            const totalAmount = venue.pricing.basePrice + (hours * hourlyRate);
+
+            await bookingsApi.create({
+                user: user._id,
+                venue: venue._id,
+                bookingDate: bookingData.date,
+                startTime: bookingData.startTime,
+                endTime: bookingData.endTime,
+                purpose: bookingData.purpose,
+                expectedGuests: bookingData.guests,
+                totalAmount,
+                status: 'pending'
+            });
+
             showToast('Booking request sent! Awaiting owner approval.', 'success');
             setIsBookingModalOpen(false);
-        } catch {
+            setBookingData({ date: '', startTime: '', endTime: '', guests: 50, purpose: '' });
+        } catch (error) {
+            console.error('Booking error:', error);
             showToast('Failed to submit booking request', 'error');
         }
     };
@@ -268,9 +346,36 @@ export default function VenueDetailPage() {
                                         <span className="text-sm text-gray-400">Booked</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <div className="w-4 h-4 rounded bg-gray-500/30 border border-gray-500/50"></div>
-                                        <span className="text-sm text-gray-400">Unavailable</span>
+                                        <div className="w-4 h-4 rounded bg-orange-500/30 border border-orange-500/50"></div>
+                                        <span className="text-sm text-gray-400">Partially Booked</span>
                                     </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded bg-gray-500/30 border border-gray-500/50"></div>
+                                        <span className="text-sm text-gray-400">Closed</span>
+                                    </div>
+                                </div>
+
+                                {/* Month Navigation */}
+                                <div className="flex items-center justify-between mb-6">
+                                    <button
+                                        onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}
+                                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                    </button>
+                                    <span className="text-white font-medium">
+                                        {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                    </span>
+                                    <button
+                                        onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}
+                                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
                                 </div>
 
                                 {/* Calendar Grid */}
@@ -282,66 +387,109 @@ export default function VenueDetailPage() {
                                         </div>
                                     ))}
 
-                                    {/* Generate 60 days of slots */}
+                                    {/* Generate calendar days for the month */}
                                     {(() => {
                                         const slots = [];
                                         const today = new Date();
                                         today.setHours(0, 0, 0, 0);
 
-                                        // Add empty slots for days before the start day of week
-                                        const firstDayOfWeek = today.getDay();
+                                        const year = calendarMonth.getFullYear();
+                                        const month = calendarMonth.getMonth();
+                                        const firstDayOfMonth = new Date(year, month, 1);
+                                        const lastDayOfMonth = new Date(year, month + 1, 0);
+
+                                        // Add empty slots for days before the first day of month
+                                        const firstDayOfWeek = firstDayOfMonth.getDay();
                                         for (let i = 0; i < firstDayOfWeek; i++) {
                                             slots.push(
                                                 <div key={`empty-${i}`} className="aspect-square"></div>
                                             );
                                         }
 
-                                        // Generate 60 days
-                                        for (let i = 0; i < 60; i++) {
-                                            const date = new Date(today);
-                                            date.setDate(date.getDate() + i);
+                                        // Generate days for this month
+                                        for (let d = 1; d <= lastDayOfMonth.getDate(); d++) {
+                                            const date = new Date(year, month, d);
+                                            const isPast = date < today;
+                                            const isToday = date.toDateString() === today.toDateString();
 
-                                            // Check if this date is in blockedDates or daySlots
-                                            const daySlot = (venue as Venue & { daySlots?: Array<{ date: string; isAvailable: boolean; isBooked: boolean }> }).daySlots?.find(
-                                                (slot) => new Date(slot.date).toDateString() === date.toDateString()
-                                            );
-
-                                            let bgClass = 'bg-green-500/20 border-green-500/40 hover:bg-green-500/30 cursor-pointer';
-                                            // Use local date format to avoid timezone issues
-                                            const year = date.getFullYear();
-                                            const month = String(date.getMonth() + 1).padStart(2, '0');
-                                            const day = String(date.getDate()).padStart(2, '0');
-                                            const dateStr = `${year}-${month}-${day}`;
+                                            const yearStr = date.getFullYear();
+                                            const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+                                            const dayStr = String(date.getDate()).padStart(2, '0');
+                                            const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
                                             const isSelected = selectedDate === dateStr;
+                                            const isHovered = hoveredDate === dateStr;
+                                            const availability = getDateAvailability(date);
 
-                                            if (daySlot?.isBooked) {
-                                                bgClass = 'bg-red-500/20 border-red-500/40 cursor-not-allowed';
-                                            } else if (daySlot && !daySlot.isAvailable) {
-                                                bgClass = 'bg-gray-500/20 border-gray-500/40 cursor-not-allowed';
+                                            // Determine background class based on availability color
+                                            let bgClass = '';
+                                            if (isPast) {
+                                                bgClass = 'bg-gray-800/30 border-gray-700/30 text-gray-600 cursor-not-allowed';
                                             } else if (isSelected) {
-                                                bgClass = 'bg-violet-500/30 border-violet-500 ring-2 ring-violet-500 cursor-pointer';
+                                                bgClass = 'bg-violet-500/30 border-violet-500 ring-2 ring-violet-500 text-white cursor-pointer';
+                                            } else if (availability.isClosed) {
+                                                bgClass = 'bg-gray-500/20 border-gray-500/40 text-gray-500 cursor-not-allowed';
+                                            } else if (availability.color === 'red') {
+                                                bgClass = 'bg-red-500/20 border-red-500/40 text-red-300 cursor-not-allowed';
+                                            } else if (availability.color === 'orange') {
+                                                bgClass = 'bg-orange-500/20 border-orange-500/40 text-orange-300 hover:bg-orange-500/30 cursor-pointer';
+                                            } else {
+                                                bgClass = 'bg-green-500/20 border-green-500/40 text-green-300 hover:bg-green-500/30 cursor-pointer';
                                             }
 
-                                            const isToday = i === 0;
-
                                             slots.push(
-                                                <button
-                                                    key={date.toISOString()}
-                                                    className={`aspect-square rounded-lg border text-xs font-medium flex flex-col items-center justify-center transition-colors ${bgClass}`}
-                                                    onClick={() => {
-                                                        if (!daySlot?.isBooked && daySlot?.isAvailable !== false) {
-                                                            setSelectedDate(dateStr);
-                                                        }
-                                                    }}
-                                                    disabled={daySlot?.isBooked || daySlot?.isAvailable === false}
-                                                >
-                                                    <span className={`${isSelected ? 'text-violet-300' : isToday ? 'text-violet-400' : 'text-gray-300'}`}>
-                                                        {date.getDate()}
-                                                    </span>
-                                                    <span className="text-[10px] text-gray-500">
-                                                        {date.toLocaleString('default', { month: 'short' })}
-                                                    </span>
-                                                </button>
+                                                <div key={dateStr} className="relative">
+                                                    <button
+                                                        className={`w-full aspect-square rounded-lg border text-xs font-medium flex flex-col items-center justify-center transition-colors ${bgClass}`}
+                                                        onClick={() => {
+                                                            if (!isPast && !availability.isClosed && availability.color !== 'red') {
+                                                                setSelectedDate(dateStr);
+                                                            }
+                                                        }}
+                                                        disabled={isPast || availability.isClosed || availability.color === 'red'}
+                                                        onMouseEnter={() => setHoveredDate(dateStr)}
+                                                        onMouseLeave={() => setHoveredDate(null)}
+                                                    >
+                                                        <span className={isToday ? 'font-bold' : ''}>{d}</span>
+                                                    </button>
+
+                                                    {/* Hover Tooltip */}
+                                                    {isHovered && !isPast && (
+                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
+                                                            <div className="px-3 py-2 rounded-lg text-xs shadow-xl border bg-gray-900/95 border-gray-700 text-white min-w-[140px]">
+                                                                <div className="font-semibold mb-1 text-gray-300">
+                                                                    {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                                </div>
+                                                                {availability.isClosed ? (
+                                                                    <div className="flex items-center gap-1.5 text-gray-400">
+                                                                        <span className="w-2 h-2 rounded-full bg-gray-500"></span>
+                                                                        Closed
+                                                                    </div>
+                                                                ) : availability.slots.length > 0 ? (
+                                                                    <div className="space-y-1">
+                                                                        {availability.slots.map((slot, idx) => (
+                                                                            <div key={idx} className="flex items-center gap-1.5">
+                                                                                <span className={`w-2 h-2 rounded-full ${slot.type === 'booked' ? 'bg-orange-500' : 'bg-red-500'}`}></span>
+                                                                                <span className={slot.type === 'booked' ? 'text-orange-400' : 'text-red-400'}>
+                                                                                    {slot.type === 'booked' ? 'Booked' : 'Busy'}: {slot.startTime} - {slot.endTime}
+                                                                                </span>
+                                                                            </div>
+                                                                        ))}
+                                                                        <div className="flex items-center gap-1.5 text-green-400">
+                                                                            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                                                            Available: Other hours
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center gap-1.5 text-green-400">
+                                                                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                                                        Available: {availability.defaultStart} - {availability.defaultEnd}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900/95" />
+                                                        </div>
+                                                    )}
+                                                </div>
                                             );
                                         }
 

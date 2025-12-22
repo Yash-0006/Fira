@@ -61,8 +61,12 @@ const venueSchema = new mongoose.Schema({
         isAvailable: { type: Boolean, default: true }
     }],
     blockedDates: [{
-        date: { type: Date },
-        reason: { type: String }
+        date: { type: String }, // "2024-12-25" format
+        slots: [{
+            startTime: { type: String }, // "09:00"
+            endTime: { type: String },   // "12:00"
+            type: { type: String, enum: ['busy', 'booked'], default: 'busy' }
+        }]
     }],
     daySlots: [{
         date: { type: Date, required: true },

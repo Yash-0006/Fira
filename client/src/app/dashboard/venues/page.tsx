@@ -434,7 +434,7 @@ export default function VenuesPage() {
                             >
                                 <div className="flex flex-col md:flex-row">
                                     {/* Venue Image */}
-                                    <div className="md:w-48 h-40 md:h-auto bg-gradient-to-br from-violet-500/30 to-blue-500/30 flex items-center justify-center relative">
+                                    <div className="md:w-48 h-40 md:h-48 bg-gradient-to-br from-violet-500/30 to-blue-500/30 flex items-center justify-center relative overflow-hidden flex-shrink-0">
                                         {venue.images?.[0] ? (
                                             <img src={venue.images[0]} alt={venue.name} className="w-full h-full object-cover" />
                                         ) : (

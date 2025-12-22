@@ -27,9 +27,20 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const pathname = usePathname();
     const { user } = useAuth();
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('dashboard_sidebar_expanded');
+            return saved === 'true';
+        }
+        return false;
+    });
     const [hasBrand, setHasBrand] = useState(false);
     const [hasVenues, setHasVenues] = useState(false);
+
+    // Persist sidebar state
+    useEffect(() => {
+        localStorage.setItem('dashboard_sidebar_expanded', String(isExpanded));
+    }, [isExpanded]);
 
     // Check if user has a brand profile or venues
     useEffect(() => {
@@ -163,15 +174,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${isExpanded ? '' : 'justify-center'
-                                    } ${isActive
-                                        ? 'bg-white text-black shadow-lg shadow-white/10'
-                                        : 'text-gray-400 hover:bg-white/[0.06] hover:text-white'
+                                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 ${isActive
+                                    ? 'bg-white text-black shadow-lg shadow-white/10'
+                                    : 'text-gray-400 hover:bg-white/[0.06] hover:text-white'
                                     }`}
                                 title={!isExpanded ? item.label : undefined}
                             >
-                                {getIcon(item.icon)}
-                                <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
+                                <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                                    {getIcon(item.icon)}
+                                </span>
+                                <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
                                     }`}>
                                     {item.label}
                                 </span>
@@ -193,15 +205,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${isExpanded ? '' : 'justify-center'
-                                            } ${isActive
-                                                ? 'bg-gradient-to-r from-violet-500/20 to-pink-500/20 text-violet-300 border border-violet-500/30 shadow-lg shadow-violet-500/10'
-                                                : 'text-gray-400 hover:bg-white/[0.06] hover:text-white'
+                                        className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 ${isActive
+                                            ? 'bg-gradient-to-r from-violet-500/20 to-pink-500/20 text-violet-300 border border-violet-500/30 shadow-lg shadow-violet-500/10'
+                                            : 'text-gray-400 hover:bg-white/[0.06] hover:text-white'
                                             }`}
                                         title={!isExpanded ? item.label : undefined}
                                     >
-                                        {getIcon(item.icon)}
-                                        <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
+                                        <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                                            {getIcon(item.icon)}
+                                        </span>
+                                        <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
                                             }`}>
                                             {item.label}
                                         </span>
@@ -221,15 +234,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             </div>
                             <Link
                                 href="/dashboard/brand"
-                                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${isExpanded ? '' : 'justify-center'
-                                    } ${pathname.startsWith('/dashboard/brand')
-                                        ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/30 shadow-lg shadow-cyan-500/10'
-                                        : 'text-gray-400 hover:bg-white/[0.06] hover:text-white'
+                                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 ${pathname.startsWith('/dashboard/brand')
+                                    ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/30 shadow-lg shadow-cyan-500/10'
+                                    : 'text-gray-400 hover:bg-white/[0.06] hover:text-white'
                                     }`}
                                 title={!isExpanded ? 'My Brand' : undefined}
                             >
-                                {getIcon('sparkles')}
-                                <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
+                                <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                                    {getIcon('sparkles')}
+                                </span>
+                                <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
                                     }`}>
                                     My Brand
                                 </span>
@@ -238,13 +252,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     )}
                 </nav>
 
-                {/* User Section */}
                 <div className="p-3 border-t border-white/[0.08] bg-black/20">
-                    <div className={`flex items-center gap-3 px-3 py-3 ${isExpanded ? '' : 'justify-center'}`}>
+                    <div className="flex items-center gap-3 px-3 py-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white font-medium shadow-lg shadow-violet-500/25 flex-shrink-0">
                             {user?.name?.charAt(0).toUpperCase() || 'U'}
                         </div>
-                        <div className={`flex-1 min-w-0 transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
+                        <div className={`flex-1 min-w-0 transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
                             }`}>
                             <div className="text-sm font-medium text-white truncate">{user?.name || 'User'}</div>
                             <div className="text-xs text-gray-500 truncate">{user?.email}</div>
@@ -253,19 +266,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     {/* Logout Button */}
                     <button
                         onClick={() => {
-                            // Get logout from context
                             localStorage.removeItem('fira_token');
                             localStorage.removeItem('fira_user');
                             window.location.href = '/signin';
                         }}
-                        className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 ${isExpanded ? '' : 'justify-center'
-                            }`}
+                        className="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-300"
                         title={!isExpanded ? 'Logout' : undefined}
                     >
-                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                        <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
+                        <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                        </span>
+                        <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
                             }`}>
                             Logout
                         </span>
