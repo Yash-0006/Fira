@@ -242,6 +242,23 @@ export const bookingsApi = {
             method: 'POST',
             body: JSON.stringify({ reason }),
         }),
+    initiatePayment: (id: string, userId: string) =>
+        request<{
+            gatewayOrderId: string;
+            keyId: string;
+            amount: number;
+            currency: string;
+            payment: { _id: string };
+            booking: { _id: string; venueName: string; totalAmount: number };
+        }>(`/bookings/${id}/initiate-payment`, {
+            method: 'POST',
+            body: JSON.stringify({ userId }),
+        }),
+    verifyPayment: (id: string, data: { gatewayOrderId: string; gatewayPaymentId: string; gatewaySignature: string }) =>
+        request(`/bookings/${id}/verify-payment`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
 };
 
 // Tickets API
@@ -253,8 +270,13 @@ export const ticketsApi = {
     getUserTickets: (userId: string) => request(`/tickets/user/${userId}`),
     getEventTickets: (eventId: string) => request(`/tickets/event/${eventId}`),
     getById: (id: string) => request(`/tickets/${id}`),
-    purchase: (data: { eventId: string; quantity: number; ticketType?: string; userId: string }) =>
-        request('/tickets', {
+    purchase: (data: { eventId: string; quantity: number; ticketType?: string; userId: string; paymentId?: string }) =>
+        request<{
+            success?: boolean;
+            ticket?: any;
+            paymentRequired?: boolean;
+            paymentData?: any
+        }>('/tickets', {
             method: 'POST',
             body: JSON.stringify(data),
         }),
@@ -394,6 +416,124 @@ export const uploadApi = {
             body: JSON.stringify({ publicId }),
         });
     },
+};
+
+// Dashboard API
+export interface DashboardStats {
+    eventsOrganizing: number;
+    upcomingEventsOrganizing: number;
+    eventsAttending: number;
+    activeTickets: number;
+    venuesOwned: number;
+    activeBookings: number;
+    totalBookings: number;
+    totalAttendees: number;
+    totalRevenue: number;
+    hasBrandProfile: boolean;
+}
+
+export interface DashboardEvent {
+    _id: string;
+    name: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    images: string[];
+    venue: {
+        _id: string;
+        name: string;
+        address: {
+            street: string;
+            city: string;
+            state: string;
+        };
+    };
+    currentAttendees: number;
+    maxAttendees: number;
+    ticketPrice: number;
+    status: string;
+    isFeatured: boolean;
+}
+
+export interface DashboardVenue {
+    _id: string;
+    name: string;
+    images: string[];
+    address: {
+        street: string;
+        city: string;
+        state: string;
+    };
+    status: string;
+    capacity: {
+        min: number;
+        max: number;
+    };
+    pricing: {
+        basePrice: number;
+        currency: string;
+    };
+    rating: {
+        average: number;
+        count: number;
+    };
+}
+
+export interface DashboardActivity {
+    _id: string;
+    title: string;
+    message: string;
+    category: string;
+    isRead: boolean;
+    createdAt: string;
+}
+
+export interface DashboardOverview {
+    stats: DashboardStats;
+    recentActivity: DashboardActivity[];
+    upcomingEventsAttending: {
+        _id: string;
+        ticketId: string;
+        event: {
+            _id: string;
+            name: string;
+            date: string;
+            startTime: string;
+            endTime: string;
+            images: string[];
+            status: string;
+            venue?: {
+                name: string;
+                address: { city: string };
+            };
+        };
+        status: string;
+        quantity: number;
+        purchasedAt: string;
+    }[];
+    organizedEvents: DashboardEvent[];
+    venues: DashboardVenue[];
+    brandProfile: {
+        _id: string;
+        name: string;
+        type: string;
+        profilePhoto: string;
+        followers: number;
+        events: number;
+    } | null;
+}
+
+export const dashboardApi = {
+    getOverview: (userId: string) =>
+        request<DashboardOverview>(`/dashboard/overview/${userId}`),
+
+    getQuickStats: (userId: string) =>
+        request<{
+            eventsOrganizing: number;
+            activeTickets: number;
+            venuesOwned: number;
+            activeBookings: number;
+        }>(`/dashboard/stats/${userId}`),
 };
 
 export { ApiError };

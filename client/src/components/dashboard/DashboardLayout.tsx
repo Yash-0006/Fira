@@ -155,14 +155,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             >
                 {/* Logo */}
                 <div className="p-4 border-b border-white/[0.08] flex items-center justify-center h-20">
-                    <Link href="/" className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center shadow-lg shadow-violet-500/25 flex-shrink-0">
-                            <span className="text-white font-bold text-lg">F</span>
-                        </div>
-                        <span className={`text-xl font-semibold text-white whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
-                            }`}>
-                            FIRA
-                        </span>
+                    <Link href="/" className="flex items-center justify-center">
+                        <img
+                            src="/logo white.png"
+                            alt="FIRA"
+                            className="w-10 h-10 object-contain flex-shrink-0"
+                        />
                     </Link>
                 </div>
 
