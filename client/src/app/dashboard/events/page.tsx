@@ -204,14 +204,32 @@ export default function EventsPage() {
 
                                     <div className="mt-4 pt-4 border-t border-white/[0.05] flex gap-2">
                                         {organizingEvents.some(e => e._id === event._id) ? (
-                                            <Button
-                                                variant="secondary"
-                                                size="sm"
-                                                className="w-full flex-1"
-                                                onClick={() => router.push(`/dashboard/events/${event._id}`)}
-                                            >
-                                                Manage Event
-                                            </Button>
+                                            <>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    className="flex-1"
+                                                    onClick={() => router.push(`/dashboard/events/${event._id}`)}
+                                                >
+                                                    Manage
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    className="flex-1 !bg-violet-600 hover:!bg-violet-500"
+                                                    onClick={() => router.push(`/dashboard/events/${event._id}/scanner`)}
+                                                >
+                                                    <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <rect x="3" y="3" width="7" height="7" />
+                                                        <rect x="14" y="3" width="7" height="7" />
+                                                        <rect x="3" y="14" width="7" height="7" />
+                                                        <path d="M14 14h3v3" />
+                                                        <path d="M17 17h4v4" />
+                                                        <path d="M14 21v-4" />
+                                                        <path d="M21 14h-4" />
+                                                    </svg>
+                                                    Scan
+                                                </Button>
+                                            </>
                                         ) : (
                                             <Button
                                                 variant="secondary"

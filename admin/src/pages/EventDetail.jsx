@@ -1,54 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import adminApi from '../api/adminApi';
 import './DetailPage.css';
-
-// Mock event data
-const mockEvent = {
-    id: '1',
-    name: 'New Year Bash 2025',
-    organizer: 'Party Plus',
-    email: 'events@partyplus.com',
-    venue: 'Skyline Rooftop',
-    date: '2024-12-31',
-    startTime: '21:00',
-    endTime: '04:00',
-    ticketsSold: 245,
-    maxAttendees: 500,
-    ticketPrice: 1500,
-    revenue: 367500,
-    status: 'approved',
-    category: 'Party',
-    description: 'The biggest New Year celebration in town!',
-};
-
-// Mock ticket buyers
-const mockBuyers = [
-    { id: '1', name: 'John Doe', email: 'john@example.com', phone: '+91 98765 43210', quantity: 2, amount: 3000, date: '2024-12-20', status: 'confirmed' },
-    { id: '2', name: 'Sarah Wilson', email: 'sarah@example.com', phone: '+91 87654 32109', quantity: 4, amount: 6000, date: '2024-12-19', status: 'confirmed' },
-    { id: '3', name: 'Mike Johnson', email: 'mike@example.com', phone: '+91 76543 21098', quantity: 1, amount: 1500, date: '2024-12-18', status: 'confirmed' },
-    { id: '4', name: 'Emma Brown', email: 'emma@example.com', phone: '+91 65432 10987', quantity: 3, amount: 4500, date: '2024-12-17', status: 'cancelled' },
-    { id: '5', name: 'Alex Turner', email: 'alex@example.com', phone: '+91 54321 09876', quantity: 2, amount: 3000, date: '2024-12-16', status: 'confirmed' },
-    { id: '6', name: 'Lisa Park', email: 'lisa@example.com', phone: '+91 43210 98765', quantity: 5, amount: 7500, date: '2024-12-15', status: 'confirmed' },
-    { id: '7', name: 'David Lee', email: 'david@example.com', phone: '+91 32109 87654', quantity: 2, amount: 3000, date: '2024-12-14', status: 'confirmed' },
-    { id: '8', name: 'Nina Patel', email: 'nina@example.com', phone: '+91 21098 76543', quantity: 1, amount: 1500, date: '2024-12-13', status: 'confirmed' },
-];
 
 const ITEMS_PER_PAGE = 5;
 
 export default function EventDetail() {
     const { id } = useParams();
+    const [event, setEvent] = useState(null);
+    const [tickets, setTickets] = useState([]);
+    const [stats, setStats] = useState({});
+    const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [search, setSearch] = useState('');
 
-    const event = mockEvent; // In real app, fetch by id
+    useEffect(() => {
+        fetchEvent();
+    }, [id]);
 
-    const filteredBuyers = mockBuyers.filter(b =>
-        b.name.toLowerCase().includes(search.toLowerCase()) ||
-        b.email.toLowerCase().includes(search.toLowerCase())
+    const fetchEvent = async () => {
+        try {
+            setLoading(true);
+            const data = await adminApi.getEventById(id);
+            setEvent(data);
+            setTickets(data.tickets || []);
+            setStats(data.stats || {});
+        } catch (err) {
+            console.error('Failed to fetch event:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const filteredTickets = tickets.filter(t =>
+        t.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        t.user?.email?.toLowerCase().includes(search.toLowerCase())
     );
 
-    const totalPages = Math.ceil(filteredBuyers.length / ITEMS_PER_PAGE);
-    const paginatedBuyers = filteredBuyers.slice(
+    const totalPages = Math.ceil(filteredTickets.length / ITEMS_PER_PAGE);
+    const paginatedTickets = filteredTickets.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
         currentPage * ITEMS_PER_PAGE
     );
@@ -58,8 +48,34 @@ export default function EventDetail() {
             style: 'currency',
             currency: 'INR',
             maximumFractionDigits: 0,
-        }).format(amount);
+        }).format(amount || 0);
     };
+
+    if (loading) {
+        return (
+            <div className="detail-page">
+                <div className="detail-header">
+                    <div className="back-nav">
+                        <Link to="/events" className="back-btn">← Back to Events</Link>
+                    </div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!event) {
+        return (
+            <div className="detail-page">
+                <div className="detail-header">
+                    <div className="back-nav">
+                        <Link to="/events" className="back-btn">← Back to Events</Link>
+                    </div>
+                    <p>Event not found</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="detail-page">
@@ -77,10 +93,10 @@ export default function EventDetail() {
                     <div>
                         <h1>{event.name}</h1>
                         <p className="detail-meta">
-                            {event.venue} • {event.date} • {event.startTime} - {event.endTime}
+                            {event.venue?.name || 'N/A'} • {new Date(event.date).toLocaleDateString()} • {event.startTime} - {event.endTime}
                         </p>
                     </div>
-                    <span className={`badge badge-${event.status}`}>{event.status}</span>
+                    <span className={`badge badge-${event.status === 'upcoming' ? 'approved' : event.status}`}>{event.status}</span>
                 </div>
             </div>
 
@@ -93,14 +109,14 @@ export default function EventDetail() {
                         </svg>
                     </div>
                     <div className="metric-info">
-                        <div className="metric-value">{event.ticketsSold}</div>
+                        <div className="metric-value">{stats.ticketsSold || event.currentAttendees || 0}</div>
                         <div className="metric-label">Tickets Sold</div>
                     </div>
                     <div className="metric-progress">
                         <div className="progress-bar">
-                            <div className="progress-fill" style={{ width: `${(event.ticketsSold / event.maxAttendees) * 100}%` }} />
+                            <div className="progress-fill" style={{ width: `${((event.currentAttendees || 0) / event.maxAttendees) * 100}%` }} />
                         </div>
-                        <span className="progress-text">{Math.round((event.ticketsSold / event.maxAttendees) * 100)}% of {event.maxAttendees}</span>
+                        <span className="progress-text">{Math.round(((event.currentAttendees || 0) / event.maxAttendees) * 100)}% of {event.maxAttendees}</span>
                     </div>
                 </div>
 
@@ -111,7 +127,7 @@ export default function EventDetail() {
                         </svg>
                     </div>
                     <div className="metric-info">
-                        <div className="metric-value revenue-text">{formatCurrency(event.revenue)}</div>
+                        <div className="metric-value revenue-text">{formatCurrency(stats.totalRevenue)}</div>
                         <div className="metric-label">Total Revenue</div>
                     </div>
                 </div>
@@ -138,7 +154,7 @@ export default function EventDetail() {
                         </svg>
                     </div>
                     <div className="metric-info">
-                        <div className="metric-value">{mockBuyers.length}</div>
+                        <div className="metric-value">{stats.totalBookings || tickets.length}</div>
                         <div className="metric-label">Total Bookings</div>
                     </div>
                 </div>
@@ -170,26 +186,32 @@ export default function EventDetail() {
                             </tr>
                         </thead>
                         <tbody>
-                            {paginatedBuyers.map((buyer) => (
-                                <tr key={buyer.id}>
+                            {paginatedTickets.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        No tickets found
+                                    </td>
+                                </tr>
+                            ) : paginatedTickets.map((ticket) => (
+                                <tr key={ticket._id}>
                                     <td>
                                         <div className="buyer-info">
-                                            <div className="avatar">{buyer.name.charAt(0)}</div>
+                                            <div className="avatar">{ticket.user?.name?.charAt(0) || 'U'}</div>
                                             <div>
-                                                <div className="buyer-name">{buyer.name}</div>
-                                                <div className="buyer-email">{buyer.email}</div>
+                                                <div className="buyer-name">{ticket.user?.name || 'N/A'}</div>
+                                                <div className="buyer-email">{ticket.user?.email || ''}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td>{buyer.phone}</td>
-                                    <td>{buyer.quantity}</td>
+                                    <td>{ticket.user?.phone || 'N/A'}</td>
+                                    <td>{ticket.quantity || 1}</td>
                                     <td style={{ color: 'var(--accent-green)', fontWeight: 600 }}>
-                                        {formatCurrency(buyer.amount)}
+                                        {formatCurrency(ticket.price)}
                                     </td>
-                                    <td>{buyer.date}</td>
+                                    <td>{new Date(ticket.createdAt).toLocaleDateString()}</td>
                                     <td>
-                                        <span className={`badge badge-${buyer.status === 'confirmed' ? 'approved' : 'rejected'}`}>
-                                            {buyer.status}
+                                        <span className={`badge badge-${ticket.status === 'confirmed' ? 'approved' : 'pending'}`}>
+                                            {ticket.status || 'confirmed'}
                                         </span>
                                     </td>
                                 </tr>

@@ -1,23 +1,35 @@
+import { useState, useEffect } from 'react';
+import adminApi from '../api/adminApi';
 import './Dashboard.css';
 
-const mockStats = {
-    pendingVenues: 12,
-    pendingEvents: 8,
-    pendingBrands: 5,
-    totalUsers: 1234,
-    totalRevenue: 458900,
-    ticketsSold: 3456,
-};
-
-const recentPending = [
-    { id: 1, type: 'venue', name: 'Skyline Rooftop', owner: 'John Doe', date: '2024-12-22' },
-    { id: 2, type: 'event', name: 'New Year Bash', owner: 'Party Plus', date: '2024-12-21' },
-    { id: 3, type: 'brand', name: 'DJ Cosmic', owner: 'Mike Wilson', date: '2024-12-21' },
-    { id: 4, type: 'venue', name: 'Beach Club', owner: 'Sarah Lee', date: '2024-12-20' },
-    { id: 5, type: 'event', name: 'Live Concert', owner: 'Music Hub', date: '2024-12-20' },
-];
-
 export default function Dashboard() {
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const data = await adminApi.getStats();
+                setStats(data);
+            } catch (err) {
+                setError(err.message);
+                // Use mock data as fallback
+                setStats({
+                    pendingVenues: 0,
+                    pendingEvents: 0,
+                    pendingBrands: 0,
+                    totalUsers: 0,
+                    totalRevenue: 0,
+                    totalTickets: 0,
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchStats();
+    }, []);
+
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -26,6 +38,17 @@ export default function Dashboard() {
         }).format(amount);
     };
 
+    if (loading) {
+        return (
+            <div className="dashboard">
+                <div className="page-header">
+                    <h1>Dashboard</h1>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="dashboard">
             <div className="page-header">
@@ -33,29 +56,43 @@ export default function Dashboard() {
                 <p>Overview of platform activity and pending approvals</p>
             </div>
 
+            {error && (
+                <div style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: 'var(--accent-red)',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '0.5rem',
+                    marginBottom: '1.5rem',
+                    fontSize: '0.875rem'
+                }}>
+                    ⚠️ Could not connect to server. Showing placeholder data.
+                </div>
+            )}
+
             {/* Stats Grid */}
             <div className="grid-4 mb-6">
                 <div className="stats-card">
                     <h3>Pending Venues</h3>
                     <div className="value" style={{ color: 'var(--accent-orange)' }}>
-                        {mockStats.pendingVenues}
+                        {stats?.pendingVenues || 0}
                     </div>
                 </div>
                 <div className="stats-card">
                     <h3>Pending Events</h3>
                     <div className="value" style={{ color: 'var(--accent-orange)' }}>
-                        {mockStats.pendingEvents}
+                        {stats?.pendingEvents || 0}
                     </div>
                 </div>
                 <div className="stats-card">
                     <h3>Pending Brands</h3>
                     <div className="value" style={{ color: 'var(--accent-orange)' }}>
-                        {mockStats.pendingBrands}
+                        {stats?.pendingBrands || 0}
                     </div>
                 </div>
                 <div className="stats-card">
                     <h3>Total Users</h3>
-                    <div className="value">{mockStats.totalUsers.toLocaleString()}</div>
+                    <div className="value">{(stats?.totalUsers || 0).toLocaleString()}</div>
                 </div>
             </div>
 
@@ -63,40 +100,45 @@ export default function Dashboard() {
                 {/* Revenue Card */}
                 <div className="card">
                     <h2 className="card-title">Platform Revenue</h2>
-                    <div className="revenue-value">{formatCurrency(mockStats.totalRevenue)}</div>
+                    <div className="revenue-value">{formatCurrency(stats?.totalRevenue || 0)}</div>
                     <p className="revenue-subtitle">Total earnings from ticket sales</p>
                     <div className="stats-row mt-4">
                         <div>
                             <div className="stats-label">Tickets Sold</div>
-                            <div className="stats-number">{mockStats.ticketsSold.toLocaleString()}</div>
+                            <div className="stats-number">{(stats?.totalTickets || 0).toLocaleString()}</div>
                         </div>
                         <div>
                             <div className="stats-label">Avg. Ticket Price</div>
                             <div className="stats-number">
-                                {formatCurrency(mockStats.totalRevenue / mockStats.ticketsSold)}
+                                {stats?.totalTickets > 0
+                                    ? formatCurrency((stats?.totalRevenue || 0) / stats.totalTickets)
+                                    : '₹0'
+                                }
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Recent Pending */}
+                {/* Quick Stats */}
                 <div className="card">
-                    <h2 className="card-title">Recent Pending Approvals</h2>
-                    <div className="pending-list">
-                        {recentPending.map((item) => (
-                            <div key={item.id} className="pending-item">
-                                <div className="pending-info">
-                                    <span className={`badge badge-${item.type === 'venue' ? 'pending' : item.type === 'event' ? 'active' : 'approved'}`}>
-                                        {item.type}
-                                    </span>
-                                    <span className="pending-name">{item.name}</span>
-                                </div>
-                                <div className="pending-meta">
-                                    <span>{item.owner}</span>
-                                    <span className="pending-date">{item.date}</span>
-                                </div>
-                            </div>
-                        ))}
+                    <h2 className="card-title">Platform Overview</h2>
+                    <div className="stats-list">
+                        <div className="stat-item">
+                            <span>Total Venues</span>
+                            <span className="stat-value">{stats?.totalVenues || 0}</span>
+                        </div>
+                        <div className="stat-item">
+                            <span>Total Events</span>
+                            <span className="stat-value">{stats?.totalEvents || 0}</span>
+                        </div>
+                        <div className="stat-item">
+                            <span>Total Brands</span>
+                            <span className="stat-value">{stats?.totalBrands || 0}</span>
+                        </div>
+                        <div className="stat-item">
+                            <span>Blocked Users</span>
+                            <span className="stat-value" style={{ color: 'var(--accent-red)' }}>{stats?.blockedUsers || 0}</span>
+                        </div>
                     </div>
                 </div>
             </div>

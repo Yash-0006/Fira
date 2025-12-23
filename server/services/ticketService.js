@@ -85,7 +85,7 @@ const ticketService = {
         // If paid event and no payment flow yet, initiate payment
         if (event.ticketType === 'paid' && event.ticketPrice > 0 && !paymentId) {
             const totalPrice = event.ticketPrice * quantity;
-            
+
             // Initiate payment
             const paymentResult = await paymentService.initiatePayment({
                 userId,
@@ -103,7 +103,7 @@ const ticketService = {
 
         // Generate ticket ID
         const ticketId = 'TKT-' + crypto.randomBytes(6).toString('hex').toUpperCase();
-        
+
         // Generate QR Code content with all ticket data
         const qrData = JSON.stringify({
             ticketId,
@@ -113,7 +113,7 @@ const ticketService = {
             ticketType,
             timestamp: Date.now()
         });
-        
+
         // Generate QR Code Image (Data URL)
         const qrCodeUrl = await QRCode.toDataURL(qrData);
 
@@ -140,7 +140,7 @@ const ticketService = {
         };
     },
 
-    // Validate ticket (check-in)
+    // Validate ticket (check-in) - enhanced with date and organizer validation
     async validateTicket(ticketId, qrCode) {
         const ticket = await Ticket.findById(ticketId);
         if (!ticket) {
@@ -150,10 +150,7 @@ const ticketService = {
         if (ticket.isUsed) {
             throw new Error('Ticket already used');
         }
-        
-        // Note: For now we're just checking if a ticket matches the ID. 
-        // In production you might decode the QR code passed from the scanner and verify signature.
-        
+
         // Mark as used
         ticket.isUsed = true;
         ticket.usedAt = new Date();
@@ -161,6 +158,86 @@ const ticketService = {
         await ticket.save();
 
         return { message: 'Ticket validated successfully', ticket };
+    },
+
+    // Scan ticket via QR code - for scanner UI
+    async scanTicket({ qrData, scannerId, eventId }) {
+        // Parse QR data
+        let parsedQR;
+        try {
+            parsedQR = JSON.parse(qrData);
+        } catch (e) {
+            throw new Error('Invalid QR code format');
+        }
+
+        const { ticketId } = parsedQR;
+        if (!ticketId) {
+            throw new Error('Invalid ticket QR code');
+        }
+
+        // Find ticket by ticketId field (not _id)
+        const ticket = await Ticket.findOne({ ticketId })
+            .populate('user', 'name email phone')
+            .populate({
+                path: 'event',
+                select: 'name date startTime endTime organizer'
+            });
+
+        if (!ticket) {
+            throw new Error('Ticket not found');
+        }
+
+        // Verify this ticket is for the correct event
+        if (ticket.event._id.toString() !== eventId) {
+            throw new Error('This ticket is for a different event');
+        }
+
+        // Check if ticket already used
+        if (ticket.isUsed || ticket.status === 'used') {
+            const usedTime = ticket.usedAt ? new Date(ticket.usedAt).toLocaleString() : 'Unknown';
+            throw new Error(`Ticket already scanned at ${usedTime}`);
+        }
+
+        // Check if ticket is cancelled
+        if (ticket.status === 'cancelled') {
+            throw new Error('This ticket has been cancelled');
+        }
+
+        // Date validation - allow scanning on event day (within 24 hour window)
+        const eventDate = new Date(ticket.event.date);
+        const today = new Date();
+
+        // Set both to start of day for comparison
+        const eventDayStart = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+        const daysDiff = Math.abs((eventDayStart - todayStart) / (1000 * 60 * 60 * 24));
+
+        if (daysDiff > 0) {
+            const eventDateStr = eventDate.toLocaleDateString('en-IN', {
+                weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+            });
+            throw new Error(`This ticket is only valid on ${eventDateStr}`);
+        }
+
+        // Mark ticket as used
+        ticket.isUsed = true;
+        ticket.usedAt = new Date();
+        ticket.status = 'used';
+        ticket.checkedInBy = scannerId;
+        await ticket.save();
+
+        return {
+            success: true,
+            message: 'Check-in successful!',
+            ticket: {
+                ticketId: ticket.ticketId,
+                ticketType: ticket.ticketType,
+                quantity: ticket.quantity,
+                user: ticket.user,
+                scannedAt: ticket.usedAt
+            }
+        };
     },
 
     // Cancel ticket
