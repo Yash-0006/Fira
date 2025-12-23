@@ -33,11 +33,12 @@ export default function Navbar() {
                     }`}>
                     <div className="flex items-center gap-8">
                         {/* Logo */}
-                        <Link href="/" className="flex items-center space-x-2">
-                            <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center">
-                                <span className="text-black font-bold text-xs">F</span>
-                            </div>
-                            <span className="text-lg font-semibold text-white hidden sm:block font-fascinate">FIRA</span>
+                        <Link href="/" className="flex items-center">
+                            <img
+                                src="/logo white.png"
+                                alt="FIRA"
+                                className="w-7 h-7 object-contain"
+                            />
                         </Link>
 
                         {/* Desktop Navigation */}

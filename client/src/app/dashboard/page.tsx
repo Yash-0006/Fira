@@ -6,52 +6,14 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui';
-import { ticketsApi, bookingsApi, notificationsApi, eventsApi } from '@/lib/api';
-import { CloudCog } from 'lucide-react';
-
-interface Ticket {
-    _id: string;
-    event: {
-        _id: string;
-        name: string;
-        date: string;
-        startTime: string;
-        venue?: { name: string };
-    };
-    status: string;
-}
-
-interface Notification {
-    _id: string;
-    category: string;
-    title: string;
-    createdAt: string;
-}
-
-interface Booking {
-    _id: string;
-    status: string;
-}
-
-interface Event {
-    _id: string;
-    name: string;
-}
-
-interface Stats {
-    upcomingEvents: number;
-    activeTickets: number;
-    bookings: number;
-    organizing: number;
-}
+import { dashboardApi, DashboardOverview } from '@/lib/api';
 
 export default function DashboardPage() {
     const router = useRouter();
     const { user, isAuthenticated, isLoading } = useAuth();
-    const [stats, setStats] = useState<Stats>({ upcomingEvents: 0, activeTickets: 0, bookings: 0, organizing: 0 });
-    const [recentActivity, setRecentActivity] = useState<Notification[]>([]);
-    const [upcomingTickets, setUpcomingTickets] = useState<Ticket[]>([]);
+    const [dashboardData, setDashboardData] = useState<DashboardOverview | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
@@ -64,29 +26,12 @@ export default function DashboardPage() {
             if (!user?._id) return;
             try {
                 setLoading(true);
-
-                // Fetch all data in parallel
-                const [tickets, bookings, notifications, events] = await Promise.all([
-                    ticketsApi.getUserTickets(user._id).catch(() => []) as Promise<Ticket[]>,
-                    bookingsApi.getUserBookings(user._id).catch(() => []) as Promise<Booking[]>,
-                    notificationsApi.getUserNotifications(user._id).catch(() => []) as Promise<Notification[]>,
-                    eventsApi.getUserEvents(user._id).catch(() => []) as Promise<Event[]>,
-                ]);
-                
-                const activeTickets = tickets.filter((t: Ticket) => t.status === 'active');
-                const upcomingEvents = activeTickets.filter((t: Ticket) => new Date(t.event?.date) > new Date());
-
-                setStats({
-                    upcomingEvents: upcomingEvents.length,
-                    activeTickets: activeTickets.length,
-                    bookings: bookings.filter((b: Booking) => b.status !== 'cancelled').length,
-                    organizing: events.length,
-                });
-
-                setRecentActivity(notifications.slice(0, 3));
-                setUpcomingTickets(upcomingEvents.slice(0, 2));
+                setError(null);
+                const data = await dashboardApi.getOverview(user._id);
+                setDashboardData(data);
             } catch (err) {
                 console.error('Failed to fetch dashboard data:', err);
+                setError('Failed to load dashboard data');
             } finally {
                 setLoading(false);
             }
@@ -110,11 +55,41 @@ export default function DashboardPage() {
         return null;
     }
 
+    const stats = dashboardData?.stats;
+
     const quickStats = [
-        { label: 'Upcoming Events', value: (stats?.upcomingEvents ?? 0).toString(), icon: 'calendar', color: 'violet' },
-        { label: 'Active Tickets', value: (stats?.activeTickets ?? 0).toString(), icon: 'ticket', color: 'green' },
-        { label: 'Bookings', value: (stats?.bookings ?? 0).toString(), icon: 'building', color: 'blue' },
-        { label: 'Organizing', value: (stats?.organizing ?? 0).toString(), icon: 'users', color: 'pink' },
+        {
+            label: 'Events Organizing',
+            value: stats?.upcomingEventsOrganizing ?? 0,
+            subValue: stats?.eventsOrganizing ? `${stats.eventsOrganizing} total` : null,
+            icon: 'calendar',
+            color: 'violet',
+            href: '/dashboard/events'
+        },
+        {
+            label: 'Events Attending',
+            value: stats?.eventsAttending ?? 0,
+            subValue: stats?.activeTickets ? `${stats.activeTickets} tickets` : null,
+            icon: 'ticket',
+            color: 'green',
+            href: '/dashboard/tickets'
+        },
+        {
+            label: 'Venues',
+            value: stats?.venuesOwned ?? 0,
+            subValue: null,
+            icon: 'building',
+            color: 'blue',
+            href: '/dashboard/venues'
+        },
+        {
+            label: 'Total Attendees',
+            value: stats?.totalAttendees ?? 0,
+            subValue: stats?.totalRevenue ? `₹${(stats.totalRevenue / 1000).toFixed(1)}K revenue` : null,
+            icon: 'users',
+            color: 'pink',
+            href: '/dashboard/analytics'
+        },
     ];
 
     const getIcon = (name: string) => {
@@ -182,6 +157,14 @@ export default function DashboardPage() {
         }
     };
 
+    const formatEventDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return {
+            month: date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+            day: date.getDate()
+        };
+    };
+
     return (
         <DashboardLayout>
             <div className="p-6 lg:p-8">
@@ -193,21 +176,34 @@ export default function DashboardPage() {
                     <p className="text-gray-400">Here&apos;s what&apos;s happening with your account.</p>
                 </div>
 
+                {/* Error State */}
+                {error && (
+                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
+                        {error}
+                    </div>
+                )}
+
                 {/* Quick Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     {quickStats.map((stat) => (
-                        <div
-                            key={stat.label}
-                            className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-5 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-300 group"
-                        >
-                            <div className={`w-12 h-12 rounded-xl ${colorClasses[stat.color]} flex items-center justify-center mb-4 group-hover:scale-105 transition-transform`}>
-                                {getIcon(stat.icon)}
+                        <Link key={stat.label} href={stat.href}>
+                            <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-5 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-300 group cursor-pointer">
+                                <div className={`w-12 h-12 rounded-xl ${colorClasses[stat.color]} flex items-center justify-center mb-4 group-hover:scale-105 transition-transform`}>
+                                    {getIcon(stat.icon)}
+                                </div>
+                                <div className="text-2xl font-bold text-white mb-1">
+                                    {loading ? (
+                                        <div className="w-12 h-7 bg-white/10 rounded animate-pulse" />
+                                    ) : (
+                                        stat.value.toLocaleString()
+                                    )}
+                                </div>
+                                <div className="text-sm text-gray-400">{stat.label}</div>
+                                {!loading && stat.subValue && (
+                                    <div className="text-xs text-gray-500 mt-1">{stat.subValue}</div>
+                                )}
                             </div>
-                            <div className="text-2xl font-bold text-white mb-1">
-                                {loading ? <div className="w-8 h-6 bg-white/10 rounded animate-pulse" /> : stat.value}
-                            </div>
-                            <div className="text-sm text-gray-400">{stat.label}</div>
-                        </div>
+                        </Link>
                     ))}
                 </div>
 
@@ -239,20 +235,85 @@ export default function DashboardPage() {
                                 Find Events
                             </Button>
                         </Link>
-                        {user?.role === 'venue_owner' && (
-                            <Link href="/create/venue">
-                                <Button variant="secondary">
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    List Venue
-                                </Button>
-                            </Link>
-                        )}
+                        <Link href="/create/venue">
+                            <Button variant="secondary">
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                List Venue
+                            </Button>
+                        </Link>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Your Organized Events */}
+                    <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6">
+                        <h2 className="text-lg font-semibold text-white mb-4">Your Organized Events</h2>
+                        <div className="space-y-4">
+                            {loading ? (
+                                [...Array(3)].map((_, i) => (
+                                    <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+                                        <div className="w-14 h-14 rounded-xl bg-white/10 animate-pulse" />
+                                        <div className="flex-1">
+                                            <div className="w-3/4 h-4 bg-white/10 rounded animate-pulse mb-2" />
+                                            <div className="w-1/2 h-3 bg-white/10 rounded animate-pulse" />
+                                        </div>
+                                    </div>
+                                ))
+                            ) : dashboardData?.organizedEvents && dashboardData.organizedEvents.length > 0 ? (
+                                dashboardData.organizedEvents.map((event) => {
+                                    const { month, day } = formatEventDate(event.date);
+                                    const attendeePercent = Math.round((event.currentAttendees / event.maxAttendees) * 100);
+                                    return (
+                                        <Link key={event._id} href={`/events/${event._id}`}>
+                                            <div className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors cursor-pointer">
+                                                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500/30 to-pink-500/30 flex items-center justify-center flex-shrink-0">
+                                                    <div className="text-center">
+                                                        <div className="text-xs text-gray-400">{month}</div>
+                                                        <div className="text-lg font-bold text-white">{day}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-white truncate">{event.name}</p>
+                                                    <p className="text-xs text-gray-400">
+                                                        {event.startTime} • {event.venue?.name || 'TBA'}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                            <div
+                                                                className="h-full bg-violet-500 rounded-full transition-all"
+                                                                style={{ width: `${Math.min(attendeePercent, 100)}%` }}
+                                                            />
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">
+                                                            {event.currentAttendees}/{event.maxAttendees}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                {event.isFeatured && (
+                                                    <span className="px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">Featured</span>
+                                                )}
+                                            </div>
+                                        </Link>
+                                    );
+                                })
+                            ) : (
+                                <div className="text-center py-6">
+                                    <p className="text-sm text-gray-500 mb-3">No events organized yet</p>
+                                    <Link href="/create/event">
+                                        <Button variant="secondary" size="sm">Create Your First Event</Button>
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                        {dashboardData?.organizedEvents && dashboardData.organizedEvents.length > 0 && (
+                            <Link href="/dashboard/events" className="block mt-4 text-sm text-violet-400 hover:text-violet-300">
+                                View all events →
+                            </Link>
+                        )}
+                    </div>
+
                     {/* Recent Activity */}
                     <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6">
                         <h2 className="text-lg font-semibold text-white mb-4">Recent Activity</h2>
@@ -267,69 +328,120 @@ export default function DashboardPage() {
                                         </div>
                                     </div>
                                 ))
-                            ) : recentActivity.length > 0 ? (
-                                recentActivity.map((activity) => (
+                            ) : dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 ? (
+                                dashboardData.recentActivity.map((activity) => (
                                     <div key={activity._id} className="flex items-start gap-4">
                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${getActivityColor(activity.category)}`}>
                                             {getActivityIcon(activity.category)}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm text-white">{activity.title}</p>
-                                            <p className="text-xs text-gray-500">{formatTime(activity.createdAt)}</p>
+                                            {activity.message && (
+                                                <p className="text-xs text-gray-500 truncate">{activity.message}</p>
+                                            )}
+                                            <p className="text-xs text-gray-500 mt-1">{formatTime(activity.createdAt)}</p>
                                         </div>
+                                        {!activity.isRead && (
+                                            <div className="w-2 h-2 rounded-full bg-violet-500 flex-shrink-0" />
+                                        )}
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-sm text-gray-500">No recent activity</p>
+                                <p className="text-sm text-gray-500 text-center py-4">No recent activity</p>
                             )}
                         </div>
                         <Link href="/dashboard/notifications" className="block mt-4 text-sm text-violet-400 hover:text-violet-300">
                             View all activity →
                         </Link>
                     </div>
+                </div>
 
-                    {/* Upcoming Events */}
-                    <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6">
-                        <h2 className="text-lg font-semibold text-white mb-4">Your Upcoming Events</h2>
-                        <div className="space-y-4">
-                            {loading ? (
-                                [...Array(2)].map((_, i) => (
-                                    <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-                                        <div className="w-14 h-14 rounded-xl bg-white/10 animate-pulse" />
-                                        <div className="flex-1">
-                                            <div className="w-3/4 h-4 bg-white/10 rounded animate-pulse mb-2" />
-                                            <div className="w-1/2 h-3 bg-white/10 rounded animate-pulse" />
+                {/* Your Venues Section */}
+                {dashboardData?.venues && dashboardData.venues.length > 0 && (
+                    <div className="mt-6 bg-white/[0.02] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-semibold text-white">Your Venues</h2>
+                            <Link href="/dashboard/venues" className="text-sm text-violet-400 hover:text-violet-300">
+                                View all →
+                            </Link>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {dashboardData.venues.slice(0, 3).map((venue) => (
+                                <Link key={venue._id} href={`/venues/${venue._id}`}>
+                                    <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] overflow-hidden hover:bg-white/[0.04] transition-colors cursor-pointer">
+                                        <div className="h-32 bg-gradient-to-br from-violet-500/20 to-pink-500/20 relative">
+                                            {venue.images?.[0] && (
+                                                <img
+                                                    src={venue.images[0]}
+                                                    alt={venue.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            )}
+                                            <span className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs ${venue.status === 'approved'
+                                                    ? 'bg-green-500/20 text-green-400'
+                                                    : 'bg-yellow-500/20 text-yellow-400'
+                                                }`}>
+                                                {venue.status}
+                                            </span>
+                                        </div>
+                                        <div className="p-4">
+                                            <h3 className="font-medium text-white truncate">{venue.name}</h3>
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                {venue.address?.city}, {venue.address?.state}
+                                            </p>
+                                            <div className="flex items-center justify-between mt-2">
+                                                <span className="text-sm text-gray-400">
+                                                    ₹{venue.pricing?.basePrice?.toLocaleString()}
+                                                </span>
+                                                {venue.rating?.average > 0 && (
+                                                    <span className="text-sm text-yellow-400">
+                                                        ⭐ {venue.rating.average.toFixed(1)}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                ))
-                            ) : upcomingTickets.length > 0 ? (
-                                upcomingTickets.map((ticket) => {
-                                    const eventDate = new Date(ticket.event?.date);
-                                    return (
-                                        <div key={ticket._id} className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-                                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500/30 to-pink-500/30 flex items-center justify-center">
-                                                <div className="text-center">
-                                                    <div className="text-xs text-gray-400">{eventDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</div>
-                                                    <div className="text-lg font-bold text-white">{eventDate.getDate()}</div>
-                                                </div>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-white truncate">{ticket.event?.name}</p>
-                                                <p className="text-xs text-gray-400">{ticket.event?.startTime} • {ticket.event?.venue?.name || 'TBA'}</p>
-                                            </div>
-                                            <span className="px-2 py-1 rounded-full bg-green-500/20 text-green-400 text-xs">Attending</span>
-                                        </div>
-                                    );
-                                })
-                            ) : (
-                                <p className="text-sm text-gray-500 text-center py-4">No upcoming events</p>
-                            )}
+                                </Link>
+                            ))}
                         </div>
-                        <Link href="/dashboard/events" className="block mt-4 text-sm text-violet-400 hover:text-violet-300">
-                            View all events →
-                        </Link>
                     </div>
-                </div>
+                )}
+
+                {/* Brand Profile Card */}
+                {dashboardData?.brandProfile && (
+                    <div className="mt-6 bg-gradient-to-r from-violet-500/10 to-pink-500/10 backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-violet-500/30 to-pink-500/30 overflow-hidden">
+                                {dashboardData.brandProfile.profilePhoto ? (
+                                    <img
+                                        src={dashboardData.brandProfile.profilePhoto}
+                                        alt={dashboardData.brandProfile.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-2xl text-white">
+                                        {dashboardData.brandProfile.name.charAt(0)}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-lg font-semibold text-white">{dashboardData.brandProfile.name}</h3>
+                                    <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-400 text-xs capitalize">
+                                        {dashboardData.brandProfile.type}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
+                                    <span>{dashboardData.brandProfile.followers.toLocaleString()} followers</span>
+                                    <span>{dashboardData.brandProfile.events} events</span>
+                                </div>
+                            </div>
+                            <Link href={`/brands/${dashboardData.brandProfile._id}`}>
+                                <Button variant="secondary" size="sm">View Profile</Button>
+                            </Link>
+                        </div>
+                    </div>
+                )}
             </div>
         </DashboardLayout>
     );

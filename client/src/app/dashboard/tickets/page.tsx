@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui';
 import { ticketsApi } from '@/lib/api';
+import TicketDisplay from '@/components/TicketDisplay';
 
 interface Ticket {
     _id: string;
@@ -42,6 +43,8 @@ export default function TicketsPage() {
         }
     }, [isLoading, isAuthenticated, router]);
 
+    const [selectedTicket, setSelectedTicket] = useState<any>(null);
+
     useEffect(() => {
         const fetchTickets = async () => {
             if (!user?._id) return;
@@ -60,6 +63,10 @@ export default function TicketsPage() {
             fetchTickets();
         }
     }, [isAuthenticated, user?._id]);
+
+    const handleDownload = (ticket: Ticket) => {
+        setSelectedTicket(ticket);
+    };
 
     if (isLoading || !isAuthenticated) {
         return (
@@ -114,13 +121,17 @@ export default function TicketsPage() {
                                 <div className="flex flex-col md:flex-row">
                                     {/* QR Code Section */}
                                     <div className="md:w-48 p-6 bg-white/[0.03] flex items-center justify-center border-b md:border-b-0 md:border-r border-white/[0.08]">
-                                        <div className="w-32 h-32 bg-white rounded-xl flex items-center justify-center">
-                                            <div className="text-center">
-                                                <svg className="w-16 h-16 text-gray-800 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                                                </svg>
-                                                <span className="text-xs text-gray-600">Scan to enter</span>
-                                            </div>
+                                        <div className="w-32 h-32 bg-white rounded-xl flex items-center justify-center p-2">
+                                            {ticket.qrCode ? (
+                                                <img src={ticket.qrCode} alt="Ticket QR" className="w-full h-full object-contain" />
+                                            ) : (
+                                                <div className="text-center">
+                                                    <svg className="w-16 h-16 text-gray-800 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                                    </svg>
+                                                    <span className="text-xs text-gray-600">Scan to enter</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -155,11 +166,11 @@ export default function TicketsPage() {
                                         </div>
 
                                         <div className="mt-4 pt-4 border-t border-white/[0.05] flex flex-wrap gap-3">
-                                            <Button variant="secondary" size="sm">
+                                            <Button variant="secondary" size="sm" onClick={() => handleDownload(ticket)}>
                                                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                                 </svg>
-                                                Download
+                                                View & Download
                                             </Button>
                                             {ticket.event?._id && (
                                                 <Link href={`/events/${ticket.event._id}`}>
@@ -185,6 +196,20 @@ export default function TicketsPage() {
                         <h3 className="text-xl font-semibold text-white mb-2">No tickets yet</h3>
                         <p className="text-gray-400 mb-6">Start exploring events to get your first ticket!</p>
                         <Button onClick={() => router.push('/events')}>Browse Events</Button>
+                    </div>
+                )}
+
+                {/* Ticket Details Modal */}
+                {selectedTicket && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                        onClick={() => setSelectedTicket(null)}>
+                        <div className="relative w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                            <TicketDisplay
+                                ticket={selectedTicket}
+                                event={selectedTicket.event}
+                                onClose={() => setSelectedTicket(null)}
+                            />
+                        </div>
                     </div>
                 )}
             </div>

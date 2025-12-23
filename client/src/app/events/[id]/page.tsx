@@ -9,6 +9,8 @@ import { eventsApi, ticketsApi } from '@/lib/api';
 import { Event, User, Venue } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
+import TicketDisplay from '@/components/TicketDisplay';
+import { paymentsApi } from '@/lib/api'; // Add paymentsApi import
 
 export default function EventDetailPage() {
     const params = useParams();
@@ -22,6 +24,7 @@ export default function EventDetailPage() {
     const [ticketQuantity, setTicketQuantity] = useState(1);
     const [privateCode, setPrivateCode] = useState('');
     const [isPurchasing, setIsPurchasing] = useState(false);
+    const [purchasedTicket, setPurchasedTicket] = useState<any>(null);
 
     useEffect(() => {
         if (params.id) {
@@ -65,24 +68,112 @@ export default function EventDetailPage() {
         }
     };
 
+    const loadRazorpay = () => {
+        return new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
+
     const purchaseTickets = async () => {
         if (!user?._id || !event?._id) return;
         setIsPurchasing(true);
         try {
-            await ticketsApi.purchase({
+            // 1. Initiate purchase request
+            const result = await ticketsApi.purchase({
                 userId: user._id,
                 eventId: event._id,
                 quantity: ticketQuantity,
                 ticketType: 'general'
             });
-            showToast(`${ticketQuantity} ticket(s) booked successfully!`, 'success');
-            setIsTicketModalOpen(false);
-            // Refresh event to update spots left
-            fetchEvent(event._id);
+
+            // 2. Handle Payment Flow
+            if (result.paymentRequired && result.paymentData) {
+                const isLoaded = await loadRazorpay();
+                if (!isLoaded) {
+                    showToast('Razorpay SDK failed to load. Are you online?', 'error');
+                    setIsPurchasing(false);
+                    return;
+                }
+
+                const options = {
+                    key: result.paymentData.keyId,
+                    amount: result.paymentData.amount,
+                    currency: result.paymentData.currency,
+                    name: "Firaa Events",
+                    description: `Tickets for ${event.name}`,
+                    order_id: result.paymentData.gatewayOrderId,
+                    handler: async function (response: any) {
+                        try {
+                            const verifyResult = await paymentsApi.verifyPayment({
+                                paymentId: result.paymentData.payment._id,
+                                gatewayOrderId: response.razorpay_order_id,
+                                gatewayPaymentId: response.razorpay_payment_id,
+                                gatewaySignature: response.razorpay_signature
+                            });
+
+                            if (verifyResult.success) {
+                                showToast('Payment successful!', 'success');
+
+                                // Call purchase again to confirm/fetch ticket if needed, or if the backend created it on verify
+                                // Optimization: backend's verifyPayment returns { success: true, payment }. 
+                                // ticketService needs to finalize the ticket creation.
+                                // NOTE: In my implementation, ticketService returns EARLY if payment is required.
+                                // We need to call ticketsApi.purchase AGAIN with the paymentId to actually CREATE the ticket.
+
+                                const finalTicketResult = await ticketsApi.purchase({
+                                    userId: user._id,
+                                    eventId: event._id!,
+                                    quantity: ticketQuantity,
+                                    ticketType: 'general',
+                                    paymentId: result.paymentData.payment._id
+                                });
+
+                                setPurchasedTicket(finalTicketResult.ticket);
+                                setIsTicketModalOpen(false);
+                                fetchEvent(event._id!); // Refresh spots
+                            } else {
+                                showToast('Payment verification failed', 'error');
+                            }
+                        } catch (err: any) {
+                            console.error(err);
+                            showToast(err.message || 'Payment verification failed', 'error');
+                        } finally {
+                            setIsPurchasing(false);
+                        }
+                    },
+                    prefill: {
+                        name: user.name,
+                        email: user.email,
+                        contact: user.phone || ''
+                    },
+                    theme: {
+                        color: "#8b5cf6"
+                    },
+                    modal: {
+                        ondismiss: function () {
+                            setIsPurchasing(false);
+                        }
+                    }
+                };
+
+                const paymentObject = new (window as any).Razorpay(options);
+                paymentObject.open();
+
+            } else if (result.ticket) {
+                // Free ticket path
+                setPurchasedTicket(result.ticket);
+                showToast(`${ticketQuantity} ticket(s) booked successfully!`, 'success');
+                setIsTicketModalOpen(false);
+                fetchEvent(event._id);
+                setIsPurchasing(false);
+            }
         } catch (err: unknown) {
             const error = err as { message?: string };
             showToast(error.message || 'Failed to purchase tickets', 'error');
-        } finally {
             setIsPurchasing(false);
         }
     };
@@ -354,14 +445,24 @@ export default function EventDetailPage() {
                             <span className="text-gray-400 text-sm">Quantity</span>
                             <div className="flex items-center gap-3">
                                 <button
-                                    onClick={() => setTicketQuantity(Math.max(1, ticketQuantity - 1))}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setTicketQuantity(Math.max(1, ticketQuantity - 1));
+                                    }}
                                     className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20"
                                 >
                                     -
                                 </button>
                                 <span className="text-white font-medium w-8 text-center">{ticketQuantity}</span>
                                 <button
-                                    onClick={() => setTicketQuantity(Math.min(10, ticketQuantity + 1))}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setTicketQuantity(Math.min(10, ticketQuantity + 1));
+                                    }}
                                     className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20"
                                 >
                                     +
@@ -382,6 +483,21 @@ export default function EventDetailPage() {
                         </Button>
                     </div>
                 </div>
+            </Modal>
+            {/* Success Ticket Modal */}
+            <Modal
+                isOpen={!!purchasedTicket}
+                onClose={() => setPurchasedTicket(null)}
+                title="You're In!"
+                size="lg"
+            >
+                {purchasedTicket && event && (
+                    <TicketDisplay
+                        ticket={purchasedTicket}
+                        event={event}
+                        onClose={() => setPurchasedTicket(null)}
+                    />
+                )}
             </Modal>
         </>
     );
