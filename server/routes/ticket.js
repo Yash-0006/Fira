@@ -62,6 +62,48 @@ router.post('/:id/validate', async (req, res) => {
     }
 });
 
+// POST /api/tickets/scan - Scan ticket via QR code (for scanner UI)
+router.post('/scan', async (req, res) => {
+    try {
+        const { qrData, scannerId, eventId } = req.body;
+
+        if (!qrData || !eventId) {
+            return res.status(400).json({ error: 'Missing qrData or eventId' });
+        }
+
+        const result = await ticketService.scanTicket({
+            qrData,
+            scannerId,
+            eventId
+        });
+        res.json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// GET /api/tickets/event/:eventId/stats - Get scan stats for event
+router.get('/event/:eventId/stats', async (req, res) => {
+    try {
+        const tickets = await ticketService.getEventTickets(req.params.eventId);
+        const total = tickets.length;
+        const scanned = tickets.filter(t => t.isUsed || t.status === 'used').length;
+        const totalAttendees = tickets.reduce((sum, t) => sum + (t.quantity || 1), 0);
+        const scannedAttendees = tickets.filter(t => t.isUsed || t.status === 'used')
+            .reduce((sum, t) => sum + (t.quantity || 1), 0);
+
+        res.json({
+            totalTickets: total,
+            scannedTickets: scanned,
+            totalAttendees,
+            scannedAttendees,
+            pending: total - scanned
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // POST /api/tickets/:id/cancel - Cancel ticket
 router.post('/:id/cancel', async (req, res) => {
     try {

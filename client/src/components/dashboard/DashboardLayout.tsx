@@ -172,7 +172,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 ${isActive
+                                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 overflow-hidden ${isActive
                                     ? 'bg-white text-black shadow-lg shadow-white/10'
                                     : 'text-gray-400 hover:bg-white/[0.06] hover:text-white'
                                     }`}
@@ -181,7 +181,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                 <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
                                     {getIcon(item.icon)}
                                 </span>
-                                <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
+                                <span className={`font-medium whitespace-nowrap transition-opacity duration-200 ${isExpanded ? 'opacity-100 delay-100' : 'opacity-0 pointer-events-none'
                                     }`}>
                                     {item.label}
                                 </span>
@@ -192,8 +192,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     {/* Venue Owner Section */}
                     {isVenueOwner && (
                         <>
-                            <div className={`pt-4 pb-2 transition-all duration-300 ${isExpanded ? '' : 'hidden'}`}>
-                                <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <div className={`transition-all duration-200 overflow-hidden ${isExpanded ? 'pt-4 pb-2 opacity-100' : 'h-0 opacity-0 pointer-events-none'}`}>
+                                <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                                     Venue Management
                                 </div>
                             </div>
@@ -203,7 +203,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 ${isActive
+                                        className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 overflow-hidden ${isActive
                                             ? 'bg-gradient-to-r from-violet-500/20 to-pink-500/20 text-violet-300 border border-violet-500/30 shadow-lg shadow-violet-500/10'
                                             : 'text-gray-400 hover:bg-white/[0.06] hover:text-white'
                                             }`}
@@ -212,7 +212,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                         <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
                                             {getIcon(item.icon)}
                                         </span>
-                                        <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
+                                        <span className={`font-medium whitespace-nowrap transition-opacity duration-200 ${isExpanded ? 'opacity-100 delay-100' : 'opacity-0 pointer-events-none'
                                             }`}>
                                             {item.label}
                                         </span>
@@ -225,14 +225,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     {/* Brand Section */}
                     {hasBrand && (
                         <>
-                            <div className={`pt-4 pb-2 transition-all duration-300 ${isExpanded ? '' : 'hidden'}`}>
-                                <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <div className={`transition-all duration-200 overflow-hidden ${isExpanded ? 'pt-4 pb-2 opacity-100' : 'h-0 opacity-0 pointer-events-none'}`}>
+                                <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                                     Brand Profile
                                 </div>
                             </div>
                             <Link
                                 href="/dashboard/brand"
-                                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 ${pathname.startsWith('/dashboard/brand')
+                                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 overflow-hidden ${pathname.startsWith('/dashboard/brand')
                                     ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/30 shadow-lg shadow-cyan-500/10'
                                     : 'text-gray-400 hover:bg-white/[0.06] hover:text-white'
                                     }`}
@@ -241,7 +241,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                 <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
                                     {getIcon('sparkles')}
                                 </span>
-                                <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
+                                <span className={`font-medium whitespace-nowrap transition-opacity duration-200 ${isExpanded ? 'opacity-100 delay-100' : 'opacity-0 pointer-events-none'
                                     }`}>
                                     My Brand
                                 </span>

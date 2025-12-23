@@ -14,13 +14,13 @@ export default function TicketDisplay({ ticket, event, onClose }: TicketDisplayP
     const ticketRef = useRef<HTMLDivElement>(null);
     const [downloading, setDownloading] = useState(false);
 
-    if (!ticket) return null;
+    if (!ticket || !event) return null;
 
-    const formattedDate = new Date(event.date).toLocaleDateString('en-US', {
+    const formattedDate = event.date ? new Date(event.date).toLocaleDateString('en-US', {
         weekday: 'short',
         month: 'short',
         day: 'numeric'
-    });
+    }) : 'TBA';
 
     const handleDownload = async () => {
         if (!ticketRef.current) return;
