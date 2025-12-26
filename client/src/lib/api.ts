@@ -206,10 +206,11 @@ export const eventsApi = {
         request<{
             event: any;
             refundResults: {
-                totalRefunds: number;
-                successCount: number;
-                failedCount: number;
-            } | null;
+                totalTickets: number;
+                refundsInitiated: number;
+                refundsFailed: number;
+                totalRefundAmount: number;
+            };
         }>(`/events/${id}/cancel`, {
             method: 'POST',
             body: JSON.stringify({ reason }),
