@@ -119,15 +119,12 @@ export default function VenueDetailPage() {
 
     const handleBooking = () => {
         if (!isAuthenticated) {
-            showToast('Please sign in to book this venue', 'warning');
+            showToast('Please sign in to create an event', 'warning');
             router.push('/signin');
             return;
         }
-        // Set the selected date in booking data when opening modal
-        if (selectedDate) {
-            setBookingData({ ...bookingData, date: selectedDate });
-        }
-        setIsBookingModalOpen(true);
+        // Navigate to create event page with venue pre-selected
+        router.push(`/create/event?venue=${venue?._id}`);
     };
 
     const submitBooking = async () => {

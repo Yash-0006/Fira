@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import PartyBackground from '@/components/PartyBackground';
 import { Button, Input } from '@/components/ui';
@@ -13,6 +13,8 @@ const categories = ['party', 'concert', 'wedding', 'corporate', 'birthday', 'fes
 
 export default function CreateEventPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const preselectedVenueId = searchParams.get('venue');
     const { isAuthenticated, isLoading, user } = useAuth();
     const { showToast } = useToast();
     const [step, setStep] = useState(1);
@@ -52,6 +54,11 @@ export default function CreateEventPage() {
                 const response = await venuesApi.getAll() as { venues?: { _id: string; name: string }[] } | { _id: string; name: string }[];
                 const venueList = Array.isArray(response) ? response : (response?.venues || []);
                 setVenues(venueList);
+
+                // Pre-select venue if provided in URL
+                if (preselectedVenueId && venueList.some(v => v._id === preselectedVenueId)) {
+                    setFormData(prev => ({ ...prev, venueId: preselectedVenueId }));
+                }
             } catch (err) {
                 console.error('Failed to fetch venues:', err);
             } finally {
@@ -59,7 +66,7 @@ export default function CreateEventPage() {
             }
         };
         fetchVenues();
-    }, []);
+    }, [preselectedVenueId]);
 
     const handleSubmit = async () => {
         if (!user?._id) {
