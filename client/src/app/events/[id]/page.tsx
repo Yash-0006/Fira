@@ -113,7 +113,7 @@ export default function EventDetailPage() {
                                 gatewayOrderId: response.razorpay_order_id,
                                 gatewayPaymentId: response.razorpay_payment_id,
                                 gatewaySignature: response.razorpay_signature
-                            });
+                            }) as { success: boolean; payment?: any };
 
                             if (verifyResult.success) {
                                 showToast('Payment successful!', 'success');

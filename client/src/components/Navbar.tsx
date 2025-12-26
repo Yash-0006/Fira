@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -28,6 +29,39 @@ export default function Navbar() {
     useEffect(() => {
         setIsMenuOpen(false);
     }, [pathname]);
+
+    // Prevent body scroll when menu is open
+    useEffect(() => {
+        if (isMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isMenuOpen]);
+
+    const menuVariants = {
+        closed: { x: '100%' },
+        open: { x: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 30 } },
+    };
+
+    const linkVariants = {
+        closed: { opacity: 0, x: 50 },
+        open: (i: number) => ({
+            opacity: 1,
+            x: 0,
+            transition: { delay: 0.1 + i * 0.1, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] as const },
+        }),
+    };
+
+    const navLinks = [
+        { href: '/venues', label: 'Venues' },
+        { href: '/events', label: 'Events' },
+        { href: '/create', label: 'Create' },
+        { href: '/brands', label: 'Brands' },
+    ];
 
     return (
         <>
@@ -137,96 +171,101 @@ export default function Navbar() {
                 </div>
             </nav>
 
-            {/* Mobile Full Screen Menu - Opens from RIGHT */}
-            {isMenuOpen && (
-                <div className="fixed inset-0 z-40 md:hidden">
-                    {/* Backdrop */}
-                    <div
-                        className="absolute inset-0 bg-black/60"
-                        onClick={() => setIsMenuOpen(false)}
-                    />
+            {/* Mobile Full Screen Menu - Animated with Framer Motion */}
+            <AnimatePresence>
+                {isMenuOpen && (
+                    <div className="fixed inset-0 z-40 md:hidden">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/60"
+                            onClick={() => setIsMenuOpen(false)}
+                        />
 
-                    {/* Full Screen Menu from Right */}
-                    <div className="absolute right-0 top-0 w-full h-full bg-black flex flex-col animate-in slide-in-from-right duration-300">
-                        {/* Header */}
-                        <div className="px-4 py-4 flex items-center justify-between border-b border-white/10">
-                            <Link href="/" onClick={() => setIsMenuOpen(false)}>
-                                <img src="/logo white.png" alt="FIRA" className="w-8 h-8 object-contain" />
-                            </Link>
-                            <button
-                                onClick={() => setIsMenuOpen(false)}
-                                className="text-white p-2"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        {/* Navigation Links */}
-                        <div className="flex-1 px-6 py-8 space-y-2">
-                            <Link
-                                href="/venues"
-                                onClick={() => setIsMenuOpen(false)}
-                                className={`block text-2xl font-semibold py-3 transition-colors ${isActive('/venues') ? 'text-white' : 'text-gray-400'}`}
-                            >
-                                Venues
-                            </Link>
-                            <Link
-                                href="/events"
-                                onClick={() => setIsMenuOpen(false)}
-                                className={`block text-2xl font-semibold py-3 transition-colors ${isActive('/events') ? 'text-white' : 'text-gray-400'}`}
-                            >
-                                Events
-                            </Link>
-                            <Link
-                                href="/create"
-                                onClick={() => setIsMenuOpen(false)}
-                                className={`block text-2xl font-semibold py-3 transition-colors ${isActive('/create') ? 'text-white' : 'text-gray-400'}`}
-                            >
-                                Create
-                            </Link>
-                            <Link
-                                href="/brands"
-                                onClick={() => setIsMenuOpen(false)}
-                                className={`block text-2xl font-semibold py-3 transition-colors ${isActive('/brands') ? 'text-white' : 'text-gray-400'}`}
-                            >
-                                Brands
-                            </Link>
-                        </div>
-
-                        {/* Auth Section */}
-                        <div className="px-6 py-6 border-t border-white/10">
-                            {isAuthenticated ? (
-                                <Link
-                                    href="/dashboard"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="block w-full bg-white text-black py-4 rounded-xl text-center font-semibold text-lg"
-                                >
-                                    Go to Dashboard
+                        {/* Full Screen Menu from Right */}
+                        <motion.div
+                            initial="closed"
+                            animate="open"
+                            exit="closed"
+                            variants={menuVariants}
+                            className="absolute right-0 top-0 w-full h-full bg-black flex flex-col"
+                        >
+                            {/* Header */}
+                            <div className="px-4 py-4 flex items-center justify-between border-b border-white/10">
+                                <Link href="/" onClick={() => setIsMenuOpen(false)}>
+                                    <img src="/logo white.png" alt="FIRA" className="w-8 h-8 object-contain" />
                                 </Link>
-                            ) : (
-                                <div className="space-y-3">
+                                <button
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="text-white p-2"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* Navigation Links */}
+                            <div className="flex-1 px-6 py-8 space-y-2">
+                                {navLinks.map((link, i) => (
+                                    <motion.div
+                                        key={link.href}
+                                        custom={i}
+                                        variants={linkVariants}
+                                        initial="closed"
+                                        animate="open"
+                                    >
+                                        <Link
+                                            href={link.href}
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className={`block text-2xl font-semibold py-3 transition-colors ${isActive(link.href) ? 'text-white' : 'text-gray-400'}`}
+                                        >
+                                            {link.label}
+                                        </Link>
+                                    </motion.div>
+                                ))}
+                            </div>
+
+                            {/* Auth Section */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0, transition: { delay: 0.4 } }}
+                                className="px-6 py-6 border-t border-white/10"
+                            >
+                                {isAuthenticated ? (
                                     <Link
-                                        href="/signup"
+                                        href="/dashboard"
                                         onClick={() => setIsMenuOpen(false)}
                                         className="block w-full bg-white text-black py-4 rounded-xl text-center font-semibold text-lg"
                                     >
-                                        Get Started
+                                        Go to Dashboard
                                     </Link>
-                                    <Link
-                                        href="/signin"
-                                        onClick={() => setIsMenuOpen(false)}
-                                        className="block w-full text-gray-400 py-3 text-center font-medium"
-                                    >
-                                        Already have an account? Sign In
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <Link
+                                            href="/signup"
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className="block w-full bg-white text-black py-4 rounded-xl text-center font-semibold text-lg"
+                                        >
+                                            Get Started
+                                        </Link>
+                                        <Link
+                                            href="/signin"
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className="block w-full text-gray-400 py-3 text-center font-medium"
+                                        >
+                                            Already have an account? Sign In
+                                        </Link>
+                                    </div>
+                                )}
+                            </motion.div>
+                        </motion.div>
                     </div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
         </>
     );
 }
+

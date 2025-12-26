@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from './ui';
+import { motion } from 'framer-motion';
 
 interface BrandCardProps {
     brand: {
@@ -21,10 +22,11 @@ interface BrandCardProps {
             name: string;
         };
     };
+    index?: number;
     onFollow?: (id: string) => void;
 }
 
-export default function BrandCard({ brand, onFollow }: BrandCardProps) {
+export default function BrandCard({ brand, index = 0, onFollow }: BrandCardProps) {
     const [isFollowing, setIsFollowing] = useState(false); // Todo: Init based on actual follow status
 
     const handleFollow = (e: React.MouseEvent) => {
@@ -42,7 +44,17 @@ export default function BrandCard({ brand, onFollow }: BrandCardProps) {
 
     return (
         <Link href={`/brands/${brand._id}`} className="block">
-            <div className="group relative bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-300 hover:-translate-y-1">
+            <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.1 }}
+                transition={{
+                    duration: 0.4,
+                    delay: index * 0.05,
+                    ease: [0.25, 0.1, 0.25, 1]
+                }}
+                className="group relative bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden transition-all duration-300 hover:border-white/20 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-500/10 h-full"
+            >
                 {/* Cover Photo */}
                 <div className="h-32 w-full bg-gradient-to-r from-violet-900/20 to-pink-900/20 relative">
                     {brand.coverPhoto ? (
@@ -121,7 +133,7 @@ export default function BrandCard({ brand, onFollow }: BrandCardProps) {
                         </div>
                     </div>
                 </div>
-            </div>
+            </motion.div>
         </Link>
     );
 }
