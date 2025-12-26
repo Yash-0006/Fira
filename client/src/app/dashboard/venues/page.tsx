@@ -506,26 +506,6 @@ export default function VenuesPage() {
                                                         {venue.status}
                                                     </span>
                                                 </div>
-                                                {/* Active Toggle */}
-                                                <div className="absolute top-3 right-3 flex gap-2">
-                                                    <button
-                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleVenueStatus(venue); }}
-                                                        className={`px-2.5 py-1 rounded-full text-xs font-medium backdrop-blur-sm border transition-colors ${venue.isActive !== false
-                                                            ? 'bg-green-500/20 text-green-400 border-green-500/20 hover:bg-green-500/30'
-                                                            : 'bg-red-500/20 text-red-400 border-red-500/20 hover:bg-red-500/30'
-                                                            }`}
-                                                    >
-                                                        {venue.isActive !== false ? 'Active' : 'Inactive'}
-                                                    </button>
-                                                    {venue.status !== 'inactive' && (
-                                                        <button
-                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCancellingVenue(venue); }}
-                                                            className="px-2.5 py-1 rounded-full text-xs font-medium backdrop-blur-sm border bg-red-500/20 text-red-400 border-red-500/20 hover:bg-red-500/30 transition-colors"
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                    )}
-                                                </div>
                                             </div>
 
                                             {/* Venue Details */}

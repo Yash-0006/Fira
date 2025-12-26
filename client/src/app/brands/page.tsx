@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import PartyBackground from '@/components/PartyBackground';
 import BrandCard from '@/components/BrandCard';
@@ -412,9 +413,11 @@ export default function BrandsPage() {
                                             <p className="text-gray-400 mb-8 max-w-xl mx-auto text-lg">
                                                 Get verified, build your profile, and connect with thousands of fans. Access exclusive tools to manage your events.
                                             </p>
-                                            <Button size="lg" className="bg-white text-black hover:bg-gray-200 font-bold px-8">
-                                                Apply for Verification
-                                            </Button>
+                                            <Link href="/create/brand">
+                                                <Button size="lg" className="bg-white text-black hover:bg-gray-200 font-bold px-8">
+                                                    Apply for Verification
+                                                </Button>
+                                            </Link>
                                         </div>
                                     </SlideUp>
                                 </div>
@@ -423,7 +426,7 @@ export default function BrandsPage() {
                             <Section title="Trending Now" data={sections.trending} sort="trending" />
                             <Section title="Top Rated" data={sections.top} sort="top" />
 
-                            {/* Near You Section */}
+                            {/* Near You Section - Commented out for now
                             <FadeIn>
                                 <div className="mb-16">
                                     <div className="flex items-center justify-between mb-6">
@@ -478,6 +481,7 @@ export default function BrandsPage() {
                                     )}
                                 </div>
                             </FadeIn>
+                            */}
                         </>
                     )}
 

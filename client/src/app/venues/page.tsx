@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import PartyBackground from '@/components/PartyBackground';
 import VenueCard from '@/components/VenueCard';
@@ -366,15 +367,17 @@ export default function VenuesPage() {
                                             <p className="text-gray-400 mb-8 max-w-xl mx-auto text-lg">
                                                 Partner with us and reach thousands of event organizers.
                                             </p>
-                                            <Button size="lg" className="bg-white text-black hover:bg-gray-200 font-bold px-8">
-                                                List Your Venue
-                                            </Button>
+                                            <Link href="/create/venue">
+                                                <Button size="lg" className="bg-white text-black hover:bg-gray-200 font-bold px-8">
+                                                    List Your Venue
+                                                </Button>
+                                            </Link>
                                         </div>
                                     </SlideUp>
                                 </div>
                             </FadeIn>
 
-                            {/* Near You Section */}
+                            {/* Near You Section - Commented out for now
                             <FadeIn>
                                 <div className="mb-16">
                                     <div className="flex items-center justify-between mb-6">
@@ -426,6 +429,7 @@ export default function VenuesPage() {
                                     )}
                                 </div>
                             </FadeIn>
+                            */}
                         </>
                     )}
 

@@ -86,6 +86,11 @@ export default function VenueManagePage() {
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [processingBookingId, setProcessingBookingId] = useState<string | null>(null);
 
+    // Venue status management
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
+
     useEffect(() => {
         if (!authLoading && !isAuthenticated) {
             router.push('/signin');
@@ -137,6 +142,35 @@ export default function VenueManagePage() {
             showToast('Failed to update booking', 'error');
         } finally {
             setProcessingBookingId(null);
+        }
+    };
+
+    const toggleVenueStatus = async () => {
+        if (!venue) return;
+        setIsTogglingStatus(true);
+        try {
+            await venuesApi.update(venue._id, { isActive: !venue.isActive });
+            showToast(`Venue ${venue.isActive ? 'deactivated' : 'activated'}!`, 'success');
+            fetchVenue(venue._id);
+        } catch {
+            showToast('Failed to update venue status', 'error');
+        } finally {
+            setIsTogglingStatus(false);
+        }
+    };
+
+    const handleCancelVenue = async () => {
+        if (!venue) return;
+        setIsCancelling(true);
+        try {
+            await venuesApi.cancel(venue._id);
+            showToast('Venue cancelled successfully', 'success');
+            setShowCancelModal(false);
+            router.push('/dashboard/venues');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Failed to cancel venue', 'error');
+        } finally {
+            setIsCancelling(false);
         }
     };
 
@@ -396,10 +430,42 @@ export default function VenueManagePage() {
                         </svg>
                         Back to Venues
                     </button>
-                    <div className="flex gap-3">
+                    <div className="flex items-center gap-3">
+                        {/* Status badges */}
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${venue.status === 'approved'
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/20'
+                            : venue.status === 'pending'
+                                ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/20'
+                                : 'bg-gray-500/20 text-gray-400 border border-gray-500/20'
+                            }`}>
+                            {venue.status}
+                        </span>
+
+                        {/* Active/Inactive Toggle */}
+                        <button
+                            onClick={toggleVenueStatus}
+                            disabled={isTogglingStatus}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${venue.isActive !== false
+                                ? 'bg-green-500/20 text-green-400 border border-green-500/20 hover:bg-green-500/30'
+                                : 'bg-red-500/20 text-red-400 border border-red-500/20 hover:bg-red-500/30'
+                                }`}
+                        >
+                            {isTogglingStatus ? '...' : venue.isActive !== false ? 'Active' : 'Inactive'}
+                        </button>
+
+                        {/* Cancel Button */}
+                        {venue.status !== 'cancelled' && (
+                            <button
+                                onClick={() => setShowCancelModal(true)}
+                                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500/20 text-red-400 border border-red-500/20 hover:bg-red-500/30 transition-colors"
+                            >
+                                Cancel Venue
+                            </button>
+                        )}
+
                         {isEditMode ? (
                             <>
-                                <Button variant="ghost" onClick={() => { setIsEditMode(false); initEditForm(venue); }}>Cancel</Button>
+                                <Button variant="ghost" onClick={() => { setIsEditMode(false); initEditForm(venue); }}>Cancel Edit</Button>
                                 <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
                             </>
                         ) : (
@@ -407,6 +473,31 @@ export default function VenueManagePage() {
                         )}
                     </div>
                 </div>
+
+                {/* Cancel Confirmation Modal */}
+                {showCancelModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                        <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 max-w-md w-full">
+                            <h3 className="text-xl font-bold text-white mb-2">Cancel Venue?</h3>
+                            <p className="text-gray-400 mb-6">
+                                Are you sure you want to cancel <strong className="text-white">{venue.name}</strong>? This action cannot be undone.
+                            </p>
+                            <div className="flex gap-3 justify-end">
+                                <Button variant="ghost" onClick={() => setShowCancelModal(false)} disabled={isCancelling}>
+                                    Keep Venue
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    onClick={handleCancelVenue}
+                                    disabled={isCancelling}
+                                    className="bg-red-500 hover:bg-red-600"
+                                >
+                                    {isCancelling ? 'Cancelling...' : 'Yes, Cancel Venue'}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {error && <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400">{error}</div>}
 

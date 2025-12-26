@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import PartyBackground from '@/components/PartyBackground';
 import EventCard from '@/components/EventCard';
@@ -333,14 +334,16 @@ export default function EventsPage() {
                                         <p className="text-gray-400 mb-8 max-w-xl mx-auto">
                                             Create events, sell tickets, and connect with your audience.
                                         </p>
-                                        <Button size="lg" className="bg-white text-black hover:bg-gray-200 font-bold px-8">
-                                            Create Event
-                                        </Button>
+                                        <Link href="/create/event">
+                                            <Button size="lg" className="bg-white text-black hover:bg-gray-200 font-bold px-8">
+                                                Create Event
+                                            </Button>
+                                        </Link>
                                     </SlideUp>
                                 </div>
                             </FadeIn>
 
-                            {/* Near You */}
+                            {/* Near You - Commented out for now
                             <FadeIn>
                                 <div className="mb-16">
                                     <div className="flex items-center justify-between mb-6">
@@ -377,6 +380,7 @@ export default function EventsPage() {
                                     )}
                                 </div>
                             </FadeIn>
+                            */}
                         </>
                     )}
 

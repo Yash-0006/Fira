@@ -24,8 +24,8 @@ export default function Navbar() {
     const navLinks = [
         { href: '/venues', label: 'Venues' },
         { href: '/events', label: 'Events' },
-        { href: '/create', label: 'Create' },
         { href: '/brands', label: 'Brands', badge: true },
+        { href: '/create', label: 'Create' },
     ];
 
     const isActive = (path: string) => {
