@@ -8,5 +8,10 @@ export default defineConfig({
     host: true,
     port: 3001,
     allowedHosts: ['admin.letsfira.com'],
+  },
+  preview: {
+    host: true,
+    port: 3001,
+    allowedHosts: ['admin.letsfira.com'],
   }
 })
