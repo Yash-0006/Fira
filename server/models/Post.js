@@ -57,12 +57,10 @@ const postSchema = new mongoose.Schema({
 postSchema.index({ brand: 1, createdAt: -1 });
 postSchema.index({ event: 1, createdAt: -1 });
 
-// Validation - must have either brand or event
-postSchema.pre('save', function (next) {
-    if (!this.brand && !this.event) {
-        return next(new Error('Post must belong to either a brand or an event'));
-    }
-    next();
-});
+// Custom validation - must have either brand or event
+postSchema.path('brand').validate(function () {
+    return this.brand || this.event;
+}, 'Post must belong to either a brand or an event');
 
 module.exports = mongoose.model('Post', postSchema);
+

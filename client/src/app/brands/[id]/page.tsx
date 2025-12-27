@@ -165,7 +165,7 @@ export default function BrandProfilePage() {
                                         <p>No posts yet from {brand.name}</p>
                                     </div>
                                 ) : (
-                                    posts.map(post => <PostCard key={post._id} post={post} />)
+                                    posts.map(post => <PostCard key={post._id} post={post} type="brand" parentId={id} />)
                                 )}
                             </div>
                         )}

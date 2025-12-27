@@ -175,6 +175,16 @@ export const brandsApi = {
             method: 'POST',
             body: JSON.stringify({ userId }),
         }),
+    addComment: (brandId: string, postId: string, userId: string, content: string) =>
+        request(`/brands/${brandId}/posts/${postId}/comments`, {
+            method: 'POST',
+            body: JSON.stringify({ userId, content }),
+        }),
+    deleteComment: (brandId: string, postId: string, commentId: string, userId: string) =>
+        request(`/brands/${brandId}/posts/${postId}/comments/${commentId}`, {
+            method: 'DELETE',
+            body: JSON.stringify({ userId }),
+        }),
 
     getEvents: (id: string) => request(`/brands/${id}/events`),
 };
@@ -294,6 +304,42 @@ export const eventsApi = {
         request(`/events/${eventId}/admin-approve`, {
             method: 'POST',
             body: JSON.stringify(data),
+        }),
+
+    // Event Posts
+    getPosts: (eventId: string, params?: Record<string, string>) => {
+        const query = params ? '?' + new URLSearchParams(params).toString() : '';
+        return request(`/events/${eventId}/posts${query}`);
+    },
+    createPost: (eventId: string, data: { content: string; images?: string[]; userId: string }) =>
+        request(`/events/${eventId}/posts`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+    updatePost: (eventId: string, postId: string, data: { content?: string; images?: string[]; userId: string }) =>
+        request(`/events/${eventId}/posts/${postId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }),
+    deletePost: (eventId: string, postId: string, userId: string) =>
+        request(`/events/${eventId}/posts/${postId}`, {
+            method: 'DELETE',
+            body: JSON.stringify({ userId }),
+        }),
+    toggleLike: (eventId: string, postId: string, userId: string) =>
+        request(`/events/${eventId}/posts/${postId}/like`, {
+            method: 'POST',
+            body: JSON.stringify({ userId }),
+        }),
+    addComment: (eventId: string, postId: string, userId: string, content: string) =>
+        request(`/events/${eventId}/posts/${postId}/comments`, {
+            method: 'POST',
+            body: JSON.stringify({ userId, content }),
+        }),
+    deleteComment: (eventId: string, postId: string, commentId: string, userId: string) =>
+        request(`/events/${eventId}/posts/${postId}/comments/${commentId}`, {
+            method: 'DELETE',
+            body: JSON.stringify({ userId }),
         }),
 };
 

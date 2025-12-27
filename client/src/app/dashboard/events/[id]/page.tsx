@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button, Modal } from '@/components/ui';
-import { eventsApi, ticketsApi } from '@/lib/api';
+import { eventsApi, ticketsApi, uploadApi } from '@/lib/api';
 import { Event, User, Venue } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
@@ -56,6 +56,15 @@ export default function DashboardEventDetailPage() {
         maxAttendees: 100,
         termsAndConditions: '',
     });
+
+    // Posts state
+    const [posts, setPosts] = useState<any[]>([]);
+    const [showPostModal, setShowPostModal] = useState(false);
+    const [postContent, setPostContent] = useState('');
+    const [postImages, setPostImages] = useState<File[]>([]);
+    const [postImagePreviews, setPostImagePreviews] = useState<string[]>([]);
+    const [isCreatingPost, setIsCreatingPost] = useState(false);
+    const [editingPost, setEditingPost] = useState<any>(null);
 
     useEffect(() => {
         if (!authLoading && !isAuthenticated) {
@@ -195,6 +204,101 @@ export default function DashboardEventDetailPage() {
             showToast(error instanceof Error ? error.message : 'Failed to update event', 'error');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    // Fetch event posts
+    const fetchPosts = async () => {
+        if (!params.id) return;
+        try {
+            const result = await eventsApi.getPosts(params.id as string) as { posts: any[] };
+            setPosts(result.posts || []);
+        } catch (err) {
+            console.error('Failed to fetch posts:', err);
+        }
+    };
+
+    // Fetch posts when event loads
+    useEffect(() => {
+        if (event?._id) {
+            fetchPosts();
+        }
+    }, [event?._id]);
+
+    // Handle post image add (local preview only)
+    const handlePostImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+            setPostImages(prev => [...prev, ...files]);
+            setPostImagePreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
+        }
+    };
+
+    // Reset post form
+    const resetPostForm = () => {
+        setPostContent('');
+        setPostImages([]);
+        setPostImagePreviews([]);
+        setEditingPost(null);
+        setShowPostModal(false);
+    };
+
+    // Create or Update post
+    const handleCreatePost = async () => {
+        if (!params.id || !user?._id || !postContent.trim()) return;
+
+        setIsCreatingPost(true);
+        try {
+            let imageUrls: string[] = [];
+            if (postImages.length > 0) {
+                const uploadPromises = postImages.map(file => uploadApi.single(file));
+                const results = await Promise.all(uploadPromises);
+                imageUrls = results.map((r: any) => r.url);
+            }
+
+            if (editingPost) {
+                await eventsApi.updatePost(params.id as string, editingPost._id, {
+                    content: postContent,
+                    images: imageUrls.length > 0 ? imageUrls : editingPost.images,
+                    userId: user._id
+                });
+            } else {
+                await eventsApi.createPost(params.id as string, {
+                    content: postContent,
+                    images: imageUrls,
+                    userId: user._id
+                });
+            }
+
+            resetPostForm();
+            fetchPosts();
+            showToast(editingPost ? 'Post updated!' : 'Post created!', 'success');
+        } catch (err) {
+            showToast('Failed to save post', 'error');
+        } finally {
+            setIsCreatingPost(false);
+        }
+    };
+
+    // Start editing a post
+    const handleEditPost = (post: any) => {
+        setEditingPost(post);
+        setPostContent(post.content);
+        setPostImagePreviews(post.images || []);
+        setShowPostModal(true);
+    };
+
+    // Delete post
+    const handleDeletePost = async (postId: string) => {
+        if (!params.id || !user?._id) return;
+        if (!confirm('Are you sure you want to delete this post?')) return;
+
+        try {
+            await eventsApi.deletePost(params.id as string, postId, user._id);
+            fetchPosts();
+            showToast('Post deleted', 'success');
+        } catch (err) {
+            showToast('Failed to delete post', 'error');
         }
     };
 
@@ -705,6 +809,122 @@ export default function DashboardEventDetailPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Event Posts Section */}
+            <div className="bg-black/40 backdrop-blur-sm border border-white/5 rounded-2xl p-6 mt-8">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-semibold text-white">Event Posts</h3>
+                    <Button onClick={() => setShowPostModal(true)}>
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        New Post
+                    </Button>
+                </div>
+
+                {posts.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400">
+                        <p>No posts yet. Create your first post to engage with attendees!</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {posts.map((post: any) => (
+                            <div key={post._id} className="bg-white/5 border border-white/10 rounded-xl p-4">
+                                <div className="flex justify-between items-start mb-3">
+                                    <p className="text-white whitespace-pre-wrap flex-1">{post.content}</p>
+                                    <div className="flex gap-2 ml-4">
+                                        <button
+                                            onClick={() => handleEditPost(post)}
+                                            className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeletePost(post._id)}
+                                            className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                {post.images && post.images.length > 0 && (
+                                    <div className="grid grid-cols-3 gap-2 mb-3">
+                                        {post.images.map((img: string, idx: number) => (
+                                            <img key={idx} src={img} alt="" className="w-full h-24 object-cover rounded-lg" />
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="flex items-center gap-4 text-sm text-gray-500">
+                                    <span>{post.likes?.length || 0} likes</span>
+                                    <span>{post.comments?.length || 0} comments</span>
+                                    <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Post Modal */}
+            <Modal isOpen={showPostModal} onClose={resetPostForm} title={editingPost ? 'Edit Post' : 'Create Post'} size="md">
+                <div className="space-y-4">
+                    <textarea
+                        value={postContent}
+                        onChange={(e) => setPostContent(e.target.value)}
+                        placeholder="Share an update about your event..."
+                        className="w-full h-32 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"
+                    />
+
+                    {postImagePreviews.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2">
+                            {postImagePreviews.map((preview, idx) => (
+                                <div key={idx} className="relative">
+                                    <img src={preview} alt="" className="w-full h-20 object-cover rounded-lg" />
+                                    <button
+                                        onClick={() => {
+                                            setPostImagePreviews(prev => prev.filter((_, i) => i !== idx));
+                                            setPostImages(prev => prev.filter((_, i) => i !== idx));
+                                        }}
+                                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <label className="flex items-center gap-2 text-gray-400 hover:text-white cursor-pointer transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>Add Images</span>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={handlePostImageAdd}
+                        />
+                    </label>
+
+                    <div className="flex justify-end gap-3 pt-4">
+                        <Button variant="secondary" onClick={resetPostForm}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleCreatePost}
+                            disabled={isCreatingPost || !postContent.trim()}
+                        >
+                            {isCreatingPost ? 'Posting...' : (editingPost ? 'Update Post' : 'Create Post')}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
 
             {/* Cancel Event Modal */}
             <Modal isOpen={showCancelModal} onClose={() => setShowCancelModal(false)} title="Cancel Event" size="md">

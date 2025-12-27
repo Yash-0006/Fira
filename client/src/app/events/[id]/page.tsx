@@ -8,6 +8,7 @@ import { Button, Modal, Input } from '@/components/ui';
 import { eventsApi, ticketsApi } from '@/lib/api';
 import { Event, User, Venue } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
+import PostCard from '@/components/PostCard';
 import { useToast } from '@/components/ui/Toast';
 import TicketDisplay from '@/components/TicketDisplay';
 import { paymentsApi } from '@/lib/api'; // Add paymentsApi import
@@ -27,6 +28,8 @@ export default function EventDetailPage() {
     const [purchasedTicket, setPurchasedTicket] = useState<any>(null);
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
     const [isTermsExpanded, setIsTermsExpanded] = useState(false);
+    const [activeTab, setActiveTab] = useState('about');
+    const [posts, setPosts] = useState<any[]>([]);
 
     useEffect(() => {
         if (params.id) {
@@ -46,6 +49,23 @@ export default function EventDetailPage() {
             setIsLoading(false);
         }
     };
+
+    // Fetch event posts
+    const fetchPosts = async () => {
+        if (!params.id) return;
+        try {
+            const result = await eventsApi.getPosts(params.id as string) as { posts: any[] };
+            setPosts(result.posts || []);
+        } catch (error) {
+            console.error('Failed to fetch event posts:', error);
+        }
+    };
+
+    useEffect(() => {
+        if (params.id && event) {
+            fetchPosts();
+        }
+    }, [params.id, event]);
 
     const handleGetTickets = () => {
         if (!isAuthenticated) {
@@ -317,72 +337,106 @@ export default function EventDetailPage() {
                                 )}
                             </div>
 
-                            {/* Description */}
-                            <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
-                                <h2 className="text-xl font-semibold text-white mb-4">About this event</h2>
-                                <div className="relative">
-                                    <p className={`text-gray-400 leading-relaxed whitespace-pre-line ${!isDescriptionExpanded ? 'line-clamp-3' : ''}`}>
-                                        {event.description}
-                                    </p>
-                                    {event.description && event.description.length > 200 && (
-                                        <button
-                                            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                                            className="mt-2 text-violet-400 hover:text-violet-300 text-sm font-medium transition-colors"
-                                        >
-                                            {isDescriptionExpanded ? 'Show less' : 'Read more'}
-                                        </button>
-                                    )}
-                                </div>
+                            {/* Tabs */}
+                            <div className="flex gap-6 border-b border-white/10">
+                                {['about', 'posts'].map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`pb-3 px-2 text-lg font-medium capitalize transition-all ${activeTab === tab
+                                            ? 'text-violet-400 border-b-2 border-violet-400'
+                                            : 'text-gray-400 hover:text-white'
+                                            }`}
+                                    >
+                                        {tab}
+                                    </button>
+                                ))}
                             </div>
 
-
-
-                            {/* Venue Info */}
-                            {venue && typeof venue === 'object' && (
-                                <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
-                                    <h2 className="text-xl font-semibold text-white mb-4">Venue</h2>
-                                    <div className="flex items-start gap-4">
-                                        <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center text-violet-400">
-                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-medium text-white">{venue.name}</h3>
-                                            <p className="text-gray-400 text-sm">{venue.address?.city}, {venue.address?.state}</p>
+                            {/* About Tab */}
+                            {activeTab === 'about' && (
+                                <>
+                                    {/* Description */}
+                                    <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
+                                        <h2 className="text-xl font-semibold text-white mb-4">About this event</h2>
+                                        <div className="relative">
+                                            <p className={`text-gray-400 leading-relaxed whitespace-pre-line ${!isDescriptionExpanded ? 'line-clamp-3' : ''}`}>
+                                                {event.description}
+                                            </p>
+                                            {event.description && event.description.length > 200 && (
+                                                <button
+                                                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                                                    className="mt-2 text-violet-400 hover:text-violet-300 text-sm font-medium transition-colors"
+                                                >
+                                                    {isDescriptionExpanded ? 'Show less' : 'Read more'}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
-                                </div>
+
+
+
+                                    {/* Venue Info */}
+                                    {venue && typeof venue === 'object' && (
+                                        <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
+                                            <h2 className="text-xl font-semibold text-white mb-4">Venue</h2>
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center text-violet-400">
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-medium text-white">{venue.name}</h3>
+                                                    <p className="text-gray-400 text-sm">{venue.address?.city}, {venue.address?.state}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Tags */}
+                                    {event.tags && event.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {event.tags.map((tag, index) => (
+                                                <span key={index} className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-gray-400 text-sm">
+                                                    #{tag}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Terms and Conditions */}
+                                    {(event as Event & { termsAndConditions?: string }).termsAndConditions && (
+                                        <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
+                                            <h2 className="text-xl font-semibold text-white mb-4">Terms & Conditions</h2>
+                                            <div className="relative">
+                                                <p className={`text-gray-400 leading-relaxed whitespace-pre-line text-sm ${!isTermsExpanded ? 'line-clamp-3' : ''}`}>
+                                                    {(event as Event & { termsAndConditions?: string }).termsAndConditions}
+                                                </p>
+                                                {(event as Event & { termsAndConditions?: string }).termsAndConditions!.length > 150 && (
+                                                    <button
+                                                        onClick={() => setIsTermsExpanded(!isTermsExpanded)}
+                                                        className="mt-2 text-violet-400 hover:text-violet-300 text-sm font-medium transition-colors"
+                                                    >
+                                                        {isTermsExpanded ? 'Show less' : 'Read more'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
 
-                            {/* Tags */}
-                            {event.tags && event.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                    {event.tags.map((tag, index) => (
-                                        <span key={index} className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-gray-400 text-sm">
-                                            #{tag}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Terms and Conditions */}
-                            {(event as Event & { termsAndConditions?: string }).termsAndConditions && (
-                                <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
-                                    <h2 className="text-xl font-semibold text-white mb-4">Terms & Conditions</h2>
-                                    <div className="relative">
-                                        <p className={`text-gray-400 leading-relaxed whitespace-pre-line text-sm ${!isTermsExpanded ? 'line-clamp-3' : ''}`}>
-                                            {(event as Event & { termsAndConditions?: string }).termsAndConditions}
-                                        </p>
-                                        {(event as Event & { termsAndConditions?: string }).termsAndConditions!.length > 150 && (
-                                            <button
-                                                onClick={() => setIsTermsExpanded(!isTermsExpanded)}
-                                                className="mt-2 text-violet-400 hover:text-violet-300 text-sm font-medium transition-colors"
-                                            >
-                                                {isTermsExpanded ? 'Show less' : 'Read more'}
-                                            </button>
-                                        )}
-                                    </div>
+                            {/* Posts Tab */}
+                            {activeTab === 'posts' && (
+                                <div>
+                                    {posts.length === 0 ? (
+                                        <div className="text-center py-20 text-gray-400">
+                                            <p>No posts yet for this event</p>
+                                        </div>
+                                    ) : (
+                                        posts.map(post => <PostCard key={post._id} post={post} type="event" parentId={params.id as string} />)
+                                    )}
                                 </div>
                             )}
                         </div>
