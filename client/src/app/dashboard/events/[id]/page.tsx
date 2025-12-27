@@ -39,6 +39,24 @@ export default function DashboardEventDetailPage() {
     const [cancelReason, setCancelReason] = useState('');
     const [cancelling, setCancelling] = useState(false);
 
+    // Edit mode state
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [editForm, setEditForm] = useState({
+        name: '',
+        description: '',
+        category: '',
+        date: '',
+        endDate: '',
+        startTime: '',
+        endTime: '',
+        eventType: 'public' as 'public' | 'private',
+        ticketType: 'free' as 'free' | 'paid',
+        ticketPrice: 0,
+        maxAttendees: 100,
+        termsAndConditions: '',
+    });
+
     useEffect(() => {
         if (!authLoading && !isAuthenticated) {
             router.push('/signin');
@@ -126,6 +144,60 @@ export default function DashboardEventDetailPage() {
         }
     };
 
+    // Initialize edit form with event data
+    const initEditForm = (e: Event) => {
+        const eventWithTerms = e as Event & { termsAndConditions?: string; endDate?: string };
+        setEditForm({
+            name: e.name || '',
+            description: e.description || '',
+            category: e.category || '',
+            date: e.date ? new Date(e.date).toISOString().split('T')[0] : '',
+            endDate: eventWithTerms.endDate ? new Date(eventWithTerms.endDate).toISOString().split('T')[0] : '',
+            startTime: e.startTime || '',
+            endTime: e.endTime || '',
+            eventType: e.eventType || 'public',
+            ticketType: e.ticketType || 'free',
+            ticketPrice: e.ticketPrice || 0,
+            maxAttendees: e.maxAttendees || 100,
+            termsAndConditions: eventWithTerms.termsAndConditions || '',
+        });
+    };
+
+    const handleEditClick = () => {
+        if (event) {
+            initEditForm(event);
+            setIsEditMode(true);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!event) return;
+        setIsSaving(true);
+        try {
+            await eventsApi.update(event._id, {
+                name: editForm.name,
+                description: editForm.description,
+                category: editForm.category,
+                date: editForm.date,
+                endDate: editForm.endDate || editForm.date,
+                startTime: editForm.startTime,
+                endTime: editForm.endTime,
+                eventType: editForm.eventType,
+                ticketType: editForm.ticketType,
+                ticketPrice: editForm.ticketType === 'paid' ? editForm.ticketPrice : 0,
+                maxAttendees: editForm.maxAttendees,
+                termsAndConditions: editForm.termsAndConditions || null,
+            });
+            showToast('Event updated successfully!', 'success');
+            setIsEditMode(false);
+            fetchEvent(event._id);
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : 'Failed to update event', 'error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     if (authLoading || !isAuthenticated) {
         return (
             <DashboardLayout>
@@ -188,17 +260,45 @@ export default function DashboardEventDetailPage() {
                         <p className="text-gray-400">View bookings and manage your event</p>
                     </div>
                     <div className="flex gap-3">
-                        <Link href={`/events/${event._id}`} target="_blank">
-                            <Button variant="secondary">View Public Page</Button>
-                        </Link>
-                        {event.status !== 'cancelled' && (
-                            <Button
-                                variant="secondary"
-                                className="!bg-red-500/20 !text-red-400 hover:!bg-red-500/30 !border-red-500/30"
-                                onClick={() => setShowCancelModal(true)}
-                            >
-                                Cancel Event
-                            </Button>
+                        {isEditMode ? (
+                            <>
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setIsEditMode(false)}
+                                    disabled={isSaving}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button onClick={handleSave} isLoading={isSaving}>
+                                    Save Changes
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <Link href={`/events/${event._id}`} target="_blank">
+                                    <Button variant="secondary">View Public Page</Button>
+                                </Link>
+                                {event.status !== 'cancelled' && (
+                                    <>
+                                        <Button
+                                            variant="secondary"
+                                            onClick={handleEditClick}
+                                        >
+                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            Edit
+                                        </Button>
+                                        <Button
+                                            variant="secondary"
+                                            className="!bg-red-500/20 !text-red-400 hover:!bg-red-500/30 !border-red-500/30"
+                                            onClick={() => setShowCancelModal(true)}
+                                        >
+                                            Cancel Event
+                                        </Button>
+                                    </>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>
@@ -239,7 +339,12 @@ export default function DashboardEventDetailPage() {
 
                     {/* Date Banner */}
                     <div className="absolute bottom-4 left-4 px-4 py-3 rounded-xl bg-black/70 backdrop-blur-sm border border-white/10">
-                        <div className="text-violet-400 text-sm font-medium">{formatDate(event.date)}</div>
+                        <div className="text-violet-400 text-sm font-medium">
+                            {formatDate(event.date)}
+                            {event.endDate && new Date(event.endDate).toDateString() !== new Date(event.date).toDateString() && (
+                                <> - {formatDate(event.endDate)}</>
+                            )}
+                        </div>
                         <div className="text-white text-lg font-semibold">{event.startTime} - {event.endTime}</div>
                     </div>
                 </div>
@@ -369,11 +474,172 @@ export default function DashboardEventDetailPage() {
                             )}
                         </div>
 
-                        {/* Description */}
+                        {/* Description / Edit Form */}
                         <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-6">
-                            <h3 className="text-lg font-semibold text-white mb-4">About this event</h3>
-                            <p className="text-gray-400 leading-relaxed whitespace-pre-line">{event.description}</p>
+                            <h3 className="text-lg font-semibold text-white mb-4">
+                                {isEditMode ? 'Edit Event Details' : 'About this event'}
+                            </h3>
+
+                            {isEditMode ? (
+                                <div className="space-y-4">
+                                    {/* Name */}
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-1">Event Name *</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.name}
+                                            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                            className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                                        />
+                                    </div>
+
+                                    {/* Description */}
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-1">Description *</label>
+                                        <textarea
+                                            value={editForm.description}
+                                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                            rows={4}
+                                            className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"
+                                        />
+                                    </div>
+
+                                    {/* Date & Time */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">Start Date *</label>
+                                            <input
+                                                type="date"
+                                                value={editForm.date}
+                                                onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                                                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 [color-scheme:dark]"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">End Date</label>
+                                            <input
+                                                type="date"
+                                                value={editForm.endDate}
+                                                onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
+                                                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 [color-scheme:dark]"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">Start Time *</label>
+                                            <input
+                                                type="time"
+                                                value={editForm.startTime}
+                                                onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
+                                                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 [color-scheme:dark]"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">End Time *</label>
+                                            <input
+                                                type="time"
+                                                value={editForm.endTime}
+                                                onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
+                                                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 [color-scheme:dark]"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Ticket Info */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">Max Attendees</label>
+                                            <input
+                                                type="number"
+                                                value={editForm.maxAttendees}
+                                                onChange={(e) => setEditForm({ ...editForm, maxAttendees: parseInt(e.target.value) })}
+                                                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">Ticket Price (₹)</label>
+                                            <input
+                                                type="number"
+                                                value={editForm.ticketPrice}
+                                                onChange={(e) => setEditForm({ ...editForm, ticketPrice: parseInt(e.target.value) })}
+                                                disabled={editForm.ticketType === 'free'}
+                                                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 disabled:opacity-50"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Terms */}
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-1">Terms & Conditions</label>
+                                        <textarea
+                                            value={editForm.termsAndConditions}
+                                            onChange={(e) => setEditForm({ ...editForm, termsAndConditions: e.target.value })}
+                                            rows={3}
+                                            placeholder="Optional terms and conditions..."
+                                            className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-gray-400 leading-relaxed whitespace-pre-line">{event.description}</p>
+                            )}
                         </div>
+
+                        {/* Venue Details - Non-editable */}
+                        {venue && typeof venue === 'object' && (
+                            <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold text-white">Venue Details</h3>
+                                    <span className="text-xs text-gray-500 bg-gray-500/10 px-2 py-1 rounded">Non-editable</span>
+                                </div>
+                                <div className="flex items-start gap-4">
+                                    <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center text-violet-400">
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-lg font-medium text-white">{venue.name}</h4>
+                                        <p className="text-gray-400 text-sm mb-2">
+                                            {venue.address?.street && `${venue.address.street}, `}
+                                            {venue.address?.city}, {venue.address?.state}
+                                        </p>
+                                        {venue.capacity && (
+                                            <p className="text-gray-500 text-sm">
+                                                Capacity: {venue.capacity.min || 0} - {venue.capacity.max || 'N/A'} people
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Tags */}
+                        {event.tags && event.tags.length > 0 && (
+                            <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">Tags</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {event.tags.map((tag, index) => (
+                                        <span key={index} className="px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-sm">
+                                            #{tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Terms and Conditions */}
+                        {(event as Event & { termsAndConditions?: string }).termsAndConditions && (
+                            <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">Terms & Conditions</h3>
+                                <p className="text-gray-400 leading-relaxed whitespace-pre-line text-sm">
+                                    {(event as Event & { termsAndConditions?: string }).termsAndConditions}
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Sidebar */}

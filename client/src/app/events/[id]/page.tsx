@@ -25,6 +25,8 @@ export default function EventDetailPage() {
     const [privateCode, setPrivateCode] = useState('');
     const [isPurchasing, setIsPurchasing] = useState(false);
     const [purchasedTicket, setPurchasedTicket] = useState<any>(null);
+    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+    const [isTermsExpanded, setIsTermsExpanded] = useState(false);
 
     useEffect(() => {
         if (params.id) {
@@ -80,6 +82,15 @@ export default function EventDetailPage() {
 
     const purchaseTickets = async () => {
         if (!user?._id || !event?._id) return;
+
+        // Check if paid ticket - show coming soon message
+        if (event.ticketType === 'paid' || (event.ticketPrice && event.ticketPrice > 0)) {
+            showToast('Payments coming soon! Stay tuned.', 'info');
+            setIsTicketModalOpen(false);
+            return;
+        }
+
+        // Free ticket flow - keep existing code
         setIsPurchasing(true);
         try {
             // 1. Initiate purchase request
@@ -90,7 +101,7 @@ export default function EventDetailPage() {
                 ticketType: 'general'
             });
 
-            // 2. Handle Payment Flow
+            // 2. Handle Payment Flow (keeping for future when payments are enabled)
             if (result.paymentRequired && result.paymentData) {
                 const isLoaded = await loadRazorpay();
                 if (!isLoaded) {
@@ -268,7 +279,12 @@ export default function EventDetailPage() {
 
                         {/* Date Banner */}
                         <div className="absolute bottom-4 left-4 px-4 py-3 rounded-xl bg-black/70 backdrop-blur-sm border border-white/10">
-                            <div className="text-violet-400 text-sm font-medium">{formatDate(event.date)}</div>
+                            <div className="text-violet-400 text-sm font-medium">
+                                {formatDate(event.date)}
+                                {event.endDate && event.endDate !== event.date && new Date(event.endDate).toDateString() !== new Date(event.date).toDateString() && (
+                                    <> - {formatDate(event.endDate)}</>
+                                )}
+                            </div>
                             <div className="text-white text-lg font-semibold">{event.startTime} - {event.endTime}</div>
                         </div>
                     </div>
@@ -304,18 +320,22 @@ export default function EventDetailPage() {
                             {/* Description */}
                             <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
                                 <h2 className="text-xl font-semibold text-white mb-4">About this event</h2>
-                                <p className="text-gray-400 leading-relaxed whitespace-pre-line">{event.description}</p>
+                                <div className="relative">
+                                    <p className={`text-gray-400 leading-relaxed whitespace-pre-line ${!isDescriptionExpanded ? 'line-clamp-3' : ''}`}>
+                                        {event.description}
+                                    </p>
+                                    {event.description && event.description.length > 200 && (
+                                        <button
+                                            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                                            className="mt-2 text-violet-400 hover:text-violet-300 text-sm font-medium transition-colors"
+                                        >
+                                            {isDescriptionExpanded ? 'Show less' : 'Read more'}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
-                            {/* Terms and Conditions */}
-                            {(event as Event & { termsAndConditions?: string }).termsAndConditions && (
-                                <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
-                                    <h2 className="text-xl font-semibold text-white mb-4">Terms & Conditions</h2>
-                                    <p className="text-gray-400 leading-relaxed whitespace-pre-line text-sm">
-                                        {(event as Event & { termsAndConditions?: string }).termsAndConditions}
-                                    </p>
-                                </div>
-                            )}
+
 
                             {/* Venue Info */}
                             {venue && typeof venue === 'object' && (
@@ -343,6 +363,26 @@ export default function EventDetailPage() {
                                             #{tag}
                                         </span>
                                     ))}
+                                </div>
+                            )}
+
+                            {/* Terms and Conditions */}
+                            {(event as Event & { termsAndConditions?: string }).termsAndConditions && (
+                                <div className="bg-black/70 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
+                                    <h2 className="text-xl font-semibold text-white mb-4">Terms & Conditions</h2>
+                                    <div className="relative">
+                                        <p className={`text-gray-400 leading-relaxed whitespace-pre-line text-sm ${!isTermsExpanded ? 'line-clamp-3' : ''}`}>
+                                            {(event as Event & { termsAndConditions?: string }).termsAndConditions}
+                                        </p>
+                                        {(event as Event & { termsAndConditions?: string }).termsAndConditions!.length > 150 && (
+                                            <button
+                                                onClick={() => setIsTermsExpanded(!isTermsExpanded)}
+                                                className="mt-2 text-violet-400 hover:text-violet-300 text-sm font-medium transition-colors"
+                                            >
+                                                {isTermsExpanded ? 'Show less' : 'Read more'}
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>

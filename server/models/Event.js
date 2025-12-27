@@ -33,6 +33,10 @@ const eventSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
+    endDate: {
+        type: Date,
+        default: function () { return this.date; } // Defaults to same day
+    },
     startTime: {
         type: String,
         required: true

@@ -15,8 +15,8 @@ const eventService = {
             filter.organizer = organizer;
             if (status) filter.status = status;
         } else {
-            // Public listing - show approved or upcoming events that are in the future
-            filter.status = { $in: ['approved', 'upcoming'] };
+            // Public listing - show only fully approved events that are in the future
+            filter.status = 'approved';
             filter.isActive = { $ne: false };
             filter.date = { $gte: new Date() }; // Only future events
         }
@@ -56,7 +56,7 @@ const eventService = {
         const { limit = 10, category } = query;
         const filter = {
             date: { $gte: new Date() },
-            status: { $in: ['approved', 'upcoming'] },
+            status: 'approved', // Only show fully approved events
             eventType: 'public',
             isActive: { $ne: false }
         };
@@ -85,18 +85,33 @@ const eventService = {
     // Create event
     async createEvent(data) {
         // Check for time slot conflicts at the venue
-        const { venue, date, startTime, endTime } = data;
+        const { venue, date, endDate, startTime, endTime } = data;
+
+        // Validate date is not in the past
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const eventDate = new Date(date);
+        eventDate.setHours(0, 0, 0, 0);
+
+        if (eventDate < today) {
+            throw new Error('Event date cannot be in the past');
+        }
+
+        // Validate end date if provided
+        if (endDate && new Date(endDate) < new Date(date)) {
+            throw new Error('End date must be after start date');
+        }
 
         if (venue && date && startTime && endTime) {
-            const eventDate = new Date(date);
-            eventDate.setHours(0, 0, 0, 0);
+            const checkDate = new Date(date);
+            checkDate.setHours(0, 0, 0, 0);
 
             // Find events at the same venue on the same date that are not cancelled/rejected
             const conflictingEvents = await Event.find({
                 venue: venue,
                 date: {
-                    $gte: eventDate,
-                    $lt: new Date(eventDate.getTime() + 24 * 60 * 60 * 1000)
+                    $gte: checkDate,
+                    $lt: new Date(checkDate.getTime() + 24 * 60 * 60 * 1000)
                 },
                 status: { $nin: ['cancelled', 'rejected'] }
             });

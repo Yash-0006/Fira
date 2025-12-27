@@ -25,6 +25,7 @@ function CreateEventForm() {
         description: '',
         category: 'party',
         date: '',
+        endDate: '',
         startTime: '',
         endTime: '',
         venueId: '',
@@ -83,6 +84,21 @@ function CreateEventForm() {
             return;
         }
 
+        // Validate date is not in the past
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const eventDate = new Date(formData.date);
+        if (eventDate < today) {
+            showToast('Event date cannot be in the past', 'error');
+            return;
+        }
+
+        // Validate end date is after start date
+        if (formData.endDate && new Date(formData.endDate) < new Date(formData.date)) {
+            showToast('End date must be after start date', 'error');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             // Upload image if selected
@@ -100,6 +116,7 @@ function CreateEventForm() {
                 description: formData.description,
                 category: formData.category,
                 date: formData.date,
+                endDate: formData.endDate || formData.date, // Default to same day if not set
                 startTime: formData.startTime,
                 endTime: formData.endTime,
                 eventType: formData.eventType,
@@ -108,11 +125,11 @@ function CreateEventForm() {
                 maxAttendees: formData.maxAttendees,
                 termsAndConditions: formData.termsAndConditions || null,
                 images: imageUrls,
-                status: 'upcoming',
+                status: 'pending', // Events need venue and admin approval first
             };
 
             await eventsApi.create(eventData);
-            showToast('Event created successfully!', 'success');
+            showToast('Event submitted for approval! The venue owner and admin will review it.', 'success');
             router.push('/dashboard/events');
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to create event';
@@ -180,7 +197,7 @@ function CreateEventForm() {
                     </div>
 
                     {/* Form Card */}
-                    <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-2xl p-8">
+                    <div className="bg-black/70 backdrop-blur-sm border border-white/10 rounded-2xl p-6 md:p-8">
                         {/* Step 1: Basic Info */}
                         {step === 1 && (
                             <div className="space-y-6">
@@ -235,14 +252,38 @@ function CreateEventForm() {
                             <div className="space-y-6">
                                 <h2 className="text-xl font-semibold text-white mb-4">Date, Time & Venue</h2>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Date</label>
-                                    <input
-                                        type="date"
-                                        value={formData.date}
-                                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
-                                    />
+                                {/* Date Warning */}
+                                {formData.date && new Date(formData.date) < new Date(new Date().toDateString()) && (
+                                    <div className="flex items-center gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-sm">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        <span>Warning: You've selected a date in the past!</span>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">Start Date *</label>
+                                        <input
+                                            type="date"
+                                            value={formData.date}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 [color-scheme:dark]"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">End Date</label>
+                                        <input
+                                            type="date"
+                                            value={formData.endDate}
+                                            min={formData.date || new Date().toISOString().split('T')[0]}
+                                            onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 [color-scheme:dark]"
+                                        />
+                                        <p className="mt-1 text-xs text-gray-500">Leave empty for single-day events</p>
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
