@@ -37,6 +37,7 @@ export default function VenueDetailPage() {
     };
     const [bookingData, setBookingData] = useState({
         date: '',
+        endDate: '',
         startTime: '',
         endTime: '',
         guests: 50,
@@ -131,6 +132,16 @@ export default function VenueDetailPage() {
     const submitBooking = async () => {
         if (!venue || !user) return;
 
+        // Validation
+        if (!bookingData.date) {
+            showToast('Please select a start date', 'error');
+            return;
+        }
+        if (!bookingData.startTime || !bookingData.endTime) {
+            showToast('Please select start and end times', 'error');
+            return;
+        }
+
         try {
             // Calculate total price
             const startHour = parseInt(bookingData.startTime.split(':')[0]);
@@ -154,7 +165,7 @@ export default function VenueDetailPage() {
 
             showToast('Booking request sent! Awaiting owner approval.', 'success');
             setIsBookingModalOpen(false);
-            setBookingData({ date: '', startTime: '', endTime: '', guests: 50, purpose: '' });
+            setBookingData({ date: '', endDate: '', startTime: '', endTime: '', guests: 50, purpose: '' });
         } catch (error) {
             console.error('Booking error:', error);
             showToast('Failed to submit booking request', 'error');
@@ -620,18 +631,30 @@ export default function VenueDetailPage() {
                 size="lg"
             >
                 <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Select Date</label>
-                        <input
-                            type="date"
-                            value={bookingData.date || selectedDate || ''}
-                            onChange={(e) => {
-                                setBookingData({ ...bookingData, date: e.target.value });
-                                setSelectedDate(e.target.value);
-                            }}
-                            min={new Date().toISOString().split('T')[0]}
-                            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 [color-scheme:dark]"
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Start Date</label>
+                            <input
+                                type="date"
+                                value={bookingData.date || selectedDate || ''}
+                                onChange={(e) => {
+                                    setBookingData({ ...bookingData, date: e.target.value });
+                                    setSelectedDate(e.target.value);
+                                }}
+                                min={new Date().toISOString().split('T')[0]}
+                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 [color-scheme:dark]"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">End Date</label>
+                            <input
+                                type="date"
+                                value={bookingData.endDate}
+                                onChange={(e) => setBookingData({ ...bookingData, endDate: e.target.value })}
+                                min={bookingData.date || new Date().toISOString().split('T')[0]}
+                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 [color-scheme:dark]"
+                            />
+                        </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -640,7 +663,7 @@ export default function VenueDetailPage() {
                                 type="time"
                                 value={bookingData.startTime}
                                 onChange={(e) => setBookingData({ ...bookingData, startTime: e.target.value })}
-                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 [color-scheme:dark]"
                             />
                         </div>
                         <div>
@@ -649,7 +672,7 @@ export default function VenueDetailPage() {
                                 type="time"
                                 value={bookingData.endTime}
                                 onChange={(e) => setBookingData({ ...bookingData, endTime: e.target.value })}
-                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 [color-scheme:dark]"
                             />
                         </div>
                     </div>
