@@ -9,6 +9,7 @@ import { eventsApi, ticketsApi, uploadApi } from '@/lib/api';
 import { Event, User, Venue } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
+import { formatDateTimeRange } from '@/lib/dateUtils';
 
 interface Ticket {
     _id: string;
@@ -441,15 +442,11 @@ export default function DashboardEventDetailPage() {
                         </span>
                     </div>
 
-                    {/* Date Banner */}
+                    {/* Date/Time Range Banner */}
                     <div className="absolute bottom-4 left-4 px-4 py-3 rounded-xl bg-black/70 backdrop-blur-sm border border-white/10">
-                        <div className="text-violet-400 text-sm font-medium">
-                            {formatDate(event.date)}
-                            {event.endDate && new Date(event.endDate).toDateString() !== new Date(event.date).toDateString() && (
-                                <> - {formatDate(event.endDate)}</>
-                            )}
+                        <div className="text-white text-lg font-semibold">
+                            {formatDateTimeRange(event.date, event.endDate || event.date, event.startTime, event.endTime)}
                         </div>
-                        <div className="text-white text-lg font-semibold">{event.startTime} - {event.endTime}</div>
                     </div>
                 </div>
 

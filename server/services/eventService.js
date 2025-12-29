@@ -135,6 +135,16 @@ const eventService = {
             }
         }
 
+        // Auto-approve venue for personal (custom) venue events
+        if (data.customVenue && (data.customVenue.isCustom === true || data.customVenue.isCustom === 'true')) {
+            data.venueApproval = {
+                status: 'approved',
+                respondedAt: new Date(),
+                respondedBy: 'system',
+            };
+            // Ensure admin approval stays pending (default), and no venue ID is required
+        }
+
         const event = await Event.create(data);
         return event;
     },

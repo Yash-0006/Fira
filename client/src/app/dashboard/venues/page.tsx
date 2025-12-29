@@ -30,6 +30,7 @@ interface Venue {
     totalBookings?: number;
     pendingBookings?: number;
     monthlyEarnings?: number;
+    locationLink?: string;
 }
 
 interface Booking {

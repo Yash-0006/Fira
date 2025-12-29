@@ -87,6 +87,15 @@ const venueSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    // Optional link to maps for this venue (Google Maps or similar)
+    locationLink: {
+        type: String,
+        default: ''
+    },
+    autoApproveBookings: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

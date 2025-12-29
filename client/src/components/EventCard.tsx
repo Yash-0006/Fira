@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Event, User, Venue } from '@/lib/types';
 import { motion } from 'framer-motion';
+import { formatEventCardDateTime } from '@/lib/dateUtils';
 
 interface EventCardProps {
     event: Event;
@@ -59,10 +60,9 @@ export default function EventCard({ event, index = 0 }: EventCardProps) {
                         </div>
                     )}
 
-                    {/* Date Badge */}
+                    {/* Date/Time Badge */}
                     <div className="absolute top-3 left-3 px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-sm border border-white/10">
-                        <div className="text-xs text-gray-400">{formatDate(event.date)}</div>
-                        <div className="text-sm font-semibold text-white">{event.startTime}</div>
+                        <div className="text-xs text-gray-400">{formatEventCardDateTime(event.date, event.startTime)}</div>
                     </div>
 
                     {/* Event Type Badge */}

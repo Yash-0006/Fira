@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import './Sidebar.css';
 
 const navItems = [
@@ -48,45 +49,113 @@ const icons = {
             <line x1="21" y1="12" x2="9" y2="12" />
         </svg>
     ),
+    menu: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+    ),
+    close: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+    ),
 };
 
 export default function Sidebar({ onLogout }) {
+    const [isMobileExpanded, setIsMobileExpanded] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth <= 768;
+            setIsMobile(mobile);
+            if (!mobile) {
+                setIsMobileExpanded(false);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const toggleMobileMenu = () => {
+        setIsMobileExpanded(!isMobileExpanded);
+    };
+
+    const handleNavClick = () => {
+        if (isMobile) {
+            setIsMobileExpanded(false);
+        }
+    };
+
     return (
-        <aside className="sidebar">
-            <div className="sidebar-header">
-                <div className="logo">
-                    <span className="logo-icon">F</span>
-                    <span className="logo-text">FIRA Admin</span>
-                </div>
-            </div>
-
-            <nav className="sidebar-nav">
-                {navItems.map((item) => (
-                    <NavLink
-                        key={item.path}
-                        to={item.path}
-                        className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                        end={item.path === '/'}
-                    >
-                        {icons[item.icon]}
-                        <span>{item.label}</span>
-                    </NavLink>
-                ))}
-            </nav>
-
-            <div className="sidebar-footer">
-                <div className="admin-info">
-                    <div className="avatar avatar-sm">A</div>
-                    <div>
-                        <div className="admin-name">Admin User</div>
-                        <div className="admin-role">Super Admin</div>
+        <>
+            {isMobile && (
+                <button
+                    className="mobile-menu-toggle"
+                    onClick={toggleMobileMenu}
+                    aria-label="Toggle menu"
+                    style={{
+                        position: 'fixed',
+                        bottom: '10px',
+                        right: '10px',
+                        zIndex: 1001,
+                        background: 'var(--accent-violet)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '50px',
+                        height: '50px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+                    }}
+                >
+                    {isMobileExpanded ? icons.close : icons.menu}
+                </button>
+            )}
+            <aside className={`sidebar ${isMobileExpanded ? 'mobile-expanded' : ''}`}>
+                <div className="sidebar-header">
+                    <div className="logo">
+                        <span className="logo-icon">F</span>
+                        <span className="logo-text">FIRA Admin</span>
                     </div>
                 </div>
-                <button className="logout-btn" onClick={onLogout}>
-                    {icons.logout}
-                    <span>Logout</span>
-                </button>
-            </div>
-        </aside>
+
+                <nav className="sidebar-nav">
+                    {navItems.map((item) => (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                            end={item.path === '/'}
+                            onClick={handleNavClick}
+                        >
+                            {icons[item.icon]}
+                            <span>{item.label}</span>
+                        </NavLink>
+                    ))}
+                </nav>
+
+                <div className="sidebar-footer">
+                    <div className="admin-info">
+                        <div className="avatar avatar-sm">A</div>
+                        <div>
+                            <div className="admin-name">Admin User</div>
+                            <div className="admin-role">Super Admin</div>
+                        </div>
+                    </div>
+                    <button className="logout-btn" onClick={onLogout}>
+                        {icons.logout}
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </aside>
+        </>
     );
 }

@@ -10,7 +10,14 @@ const eventSchema = new mongoose.Schema({
     venue: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Venue',
-        required: true
+        // Required only when not using a custom venue
+        required: function () {
+            try {
+                return !(this.customVenue && this.customVenue.isCustom);
+            } catch (e) {
+                return true;
+            }
+        }
     },
     booking: {
         type: mongoose.Schema.Types.ObjectId,
@@ -79,6 +86,30 @@ const eventSchema = new mongoose.Schema({
     tags: [{
         type: String
     }],
+    friendsAndFamilyStay: {
+        type: Boolean,
+        default: false
+    },
+    allowAlcohol: {
+        type: Boolean,
+        default: false
+    },
+    customVenue: {
+        isCustom: {
+            type: Boolean,
+            default: false
+        },
+        name: String,
+        description: String,
+        address: String,
+        city: String,
+        state: String,
+        pincode: String,
+        capacity: Number,
+        images: [String],
+        // Mandatory link to maps when using a custom venue
+        locationLink: String
+    },
     termsAndConditions: {
         type: String,
         default: null

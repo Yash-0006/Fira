@@ -50,6 +50,7 @@ export interface Venue {
     };
     amenities: string[];
     rules: string[];
+    locationLink?: string;
     location: {
         type: 'Point';
         coordinates: [number, number]; // [longitude, latitude]

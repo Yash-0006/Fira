@@ -53,7 +53,23 @@ const bookingService = {
 
     // Create booking
     async createBooking(data) {
+        const Venue = require('../models/Venue');
+
         const booking = await Booking.create(data);
+
+        // Check if venue has auto-approve enabled
+        const venue = await Venue.findById(data.venue);
+        if (venue && venue.autoApproveBookings) {
+            // Auto-approve the booking
+            await Booking.findByIdAndUpdate(
+                booking._id,
+                { $set: { status: 'accepted' } },
+                { new: true }
+            );
+            // Update the booking status in memory
+            booking.status = 'accepted';
+        }
+
         // TODO: Send notification to venue owner
         return booking;
     },
@@ -154,10 +170,10 @@ const bookingService = {
     // Initiate payment for an accepted booking
     async initiateBookingPayment(bookingId, userId) {
         const paymentService = require('./paymentService');
-        
+
         const booking = await Booking.findById(bookingId)
             .populate('venue', 'name');
-        
+
         if (!booking) {
             throw new Error('Booking not found');
         }
@@ -177,7 +193,7 @@ const bookingService = {
         // Calculate 10% advance payment
         const advanceAmount = Math.round(booking.totalAmount * 0.10);
         const platformFee = Math.round(advanceAmount * 0.05);
-        
+
         // Initiate payment via Razorpay for ADVANCE amount only
         const paymentData = await paymentService.initiatePayment({
             userId,
