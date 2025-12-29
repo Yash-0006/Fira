@@ -41,6 +41,15 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     const data = await response.json();
 
     if (!response.ok) {
+        // Handle 401 Unauthorized (Token expired, Invalid, or User Deleted)
+        if (response.status === 401 && typeof window !== 'undefined') {
+            localStorage.removeItem('fira_token');
+            // Prevent redirect loop if already on login page
+            if (!window.location.pathname.startsWith('/signin')) {
+                window.location.href = '/signin';
+            }
+        }
+
         throw new ApiError(response.status, data.error || 'Something went wrong');
     }
 
