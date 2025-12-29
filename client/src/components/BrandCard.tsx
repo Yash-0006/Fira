@@ -52,19 +52,24 @@ export default function BrandCard({ brand, index = 0, onFollow }: BrandCardProps
         e.stopPropagation();
         if (!user?._id) return;
 
+        // Optimistic update
+        const wasFollowing = isFollowing;
+        const previousCount = followersCount;
+
+        setIsFollowing(!wasFollowing);
+        setFollowersCount(prev => wasFollowing ? Math.max(0, prev - 1) : prev + 1);
+
         try {
-            if (isFollowing) {
+            if (wasFollowing) {
                 await brandsApi.unfollow(brand._id, user._id);
-                setIsFollowing(false);
-                setFollowersCount(prev => Math.max(0, prev - 1));
             } else {
                 await brandsApi.follow(brand._id, user._id);
-                setIsFollowing(true);
-                setFollowersCount(prev => prev + 1);
             }
             if (onFollow) onFollow(brand._id);
         } catch {
-            // Optionally show toast, but keep UI consistent
+            // Revert on error
+            setIsFollowing(wasFollowing);
+            setFollowersCount(previousCount);
         }
     };
 

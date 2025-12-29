@@ -87,30 +87,37 @@ export default function BrandProfilePage() {
             return;
         }
 
+        // Optimistic update
+        const wasFollowing = isFollowing;
+        const previousBrand = brand;
+
+        setIsFollowing(!wasFollowing);
+        if (brand) {
+            setBrand({
+                ...brand,
+                stats: {
+                    ...brand.stats,
+                    followers: wasFollowing
+                        ? Math.max(0, (brand.stats?.followers || 1) - 1)
+                        : (brand.stats?.followers || 0) + 1
+                }
+            });
+        }
+
         setFollowLoading(true);
         try {
-            if (isFollowing) {
+            if (wasFollowing) {
                 await brandsApi.unfollow(id, user._id);
-                setIsFollowing(false);
-                // Update local brand stats
-                if (brand) {
-                    setBrand({
-                        ...brand,
-                        stats: { ...brand.stats, followers: (brand.stats?.followers || 1) - 1 }
-                    });
-                }
             } else {
                 await brandsApi.follow(id, user._id);
-                setIsFollowing(true);
-                if (brand) {
-                    setBrand({
-                        ...brand,
-                        stats: { ...brand.stats, followers: (brand.stats?.followers || 0) + 1 }
-                    });
-                }
             }
         } catch (error) {
             console.error('Error toggling follow:', error);
+            // Revert on error
+            setIsFollowing(wasFollowing);
+            if (previousBrand) {
+                setBrand(previousBrand);
+            }
         } finally {
             setFollowLoading(false);
         }
