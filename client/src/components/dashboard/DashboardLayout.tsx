@@ -20,6 +20,10 @@ const venueOwnerItems = [
     { href: '/dashboard/venues', icon: 'building-office', label: 'My Venues' },
 ];
 
+const eventOrganizerItems = [
+    { href: '/dashboard/events', icon: 'calendar', label: 'My Events' },
+];
+
 interface DashboardLayoutProps {
     children: React.ReactNode;
 }
@@ -36,6 +40,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     });
     const [hasBrand, setHasBrand] = useState(false);
     const [hasVenues, setHasVenues] = useState(false);
+    const [hasEvents, setHasEvents] = useState(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
@@ -86,6 +91,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 setHasVenues(venues.length > 0);
             } catch {
                 setHasVenues(false);
+            }
+
+            // Check for organized events
+            try {
+                const { eventsApi } = await import('@/lib/api');
+                const response = await eventsApi.getUserEvents(user._id) as { events?: any[]; data?: any[] };
+                const events = Array.isArray(response) ? response : ((response as { events?: any[]; data?: any[] })?.events || (response as { events?: any[]; data?: any[] })?.data || []);
+                setHasEvents(events.length > 0);
+            } catch {
+                setHasEvents(false);
             }
         };
         checkUserAssets();
@@ -409,6 +424,39 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                     My Brand
                                 </span>
                             </Link>
+                        </>
+                    )}
+
+                    {/* Events Management Section */}
+                    {hasEvents && (
+                        <>
+                            <div className={`transition-all duration-200 overflow-hidden ${isExpanded ? 'pt-4 pb-2 opacity-100' : 'h-0 opacity-0 pointer-events-none'}`}>
+                                <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                    Events Management
+                                </div>
+                            </div>
+                            {eventOrganizerItems.map((item) => {
+                                const isActive = pathname.startsWith(item.href);
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 overflow-hidden ${isActive
+                                            ? 'bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-300 border border-orange-500/30 shadow-lg shadow-orange-500/10'
+                                            : 'text-gray-400 hover:bg-white/[0.06] hover:text-white'
+                                            }`}
+                                        title={!isExpanded ? item.label : undefined}
+                                    >
+                                        <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                                            {getIcon(item.icon)}
+                                        </span>
+                                        <span className={`font-medium whitespace-nowrap transition-opacity duration-200 ${isExpanded ? 'opacity-100 delay-100' : 'opacity-0 pointer-events-none'
+                                            }`}>
+                                            {item.label}
+                                        </span>
+                                    </Link>
+                                );
+                            })}
                         </>
                     )}
                 </nav>
