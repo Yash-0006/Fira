@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button, Input } from '@/components/ui';
 import Navbar from '@/components/Navbar';
@@ -11,6 +11,8 @@ import { authApi } from '@/lib/api';
 
 export default function SignInPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirectTo = searchParams.get('redirect') || '/dashboard';
     const { login } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -33,7 +35,8 @@ export default function SignInPage() {
 
         try {
             await login(formData.email, formData.password);
-            router.push('/dashboard');
+            // Redirect to the original page they were trying to access, or dashboard
+            router.push(redirectTo);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Login failed';
 

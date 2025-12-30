@@ -59,7 +59,7 @@ function CreateEventForm() {
     useEffect(() => {
         // Only redirect if auth check is complete AND user is not authenticated
         if (!isLoading && !isAuthenticated) {
-            router.replace('/signin');
+            router.replace('/signin?redirect=/create/event');
         }
     }, [isLoading, isAuthenticated, router]);
 

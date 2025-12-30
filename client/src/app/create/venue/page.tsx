@@ -37,7 +37,7 @@ export default function CreateVenuePage() {
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
-            router.replace('/signin');
+            router.replace('/signin?redirect=/create/venue');
         }
     }, [isLoading, isAuthenticated, router]);
 
