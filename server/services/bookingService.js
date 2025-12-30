@@ -1,4 +1,6 @@
 const Booking = require('../models/Booking');
+const whatsappService = require('./whatsappService');
+const whatsappTemplates = require('../utils/whatsappTemplates');
 
 const bookingService = {
     // Get all bookings
@@ -80,6 +82,18 @@ const bookingService = {
             // Get booker info
             const booker = await User.findById(data.user).select('name email phone');
             console.log('🎫 Booker:', booker ? `${booker.name} (${booker.email})` : 'NOT FOUND');
+
+            // Send WhatsApp confirmation to booker if phone is available (uses approved plain-text template)
+            if (booker?.phone) {
+                try {
+                    const bodyText = `Booking confirmed at ${venue.name} on ${data.bookingDate} ${data.startTime || ''}-${data.endTime || ''} (ID: ${booking._id})`;
+                    const template = whatsappTemplates.jaspers_market_plain_text_v1({ bodyText });
+                    await whatsappService.sendTemplate({ to: booker.phone, template });
+                    console.log('✅ WhatsApp booking confirmation sent to', booker.phone);
+                } catch (waErr) {
+                    console.warn('⚠️ Failed to send WhatsApp booking confirmation:', waErr.message);
+                }
+            }
 
             // Send email notification to venue owner
             if (venue.owner && venue.owner.email && booker) {

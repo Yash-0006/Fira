@@ -57,8 +57,25 @@ function eventReminderTemplate({ userName, eventName, startDateTime, venueName }
     };
 }
 
+// Simple one-parameter template; align name to approved template
+function jaspers_market_plain_text_v1({ bodyText }) {
+    return {
+        name: 'jaspers_market_plain_text_v1',
+        language: { code: 'en_US' },
+        components: [
+            {
+                type: 'body',
+                parameters: [
+                    { type: 'text', text: bodyText || 'Hello from FIRA' }
+                ]
+            }
+        ]
+    };
+}
+
 module.exports = {
     bookingConfirmationTemplate,
     bookingStatusTemplate,
-    eventReminderTemplate
+    eventReminderTemplate,
+    jaspers_market_plain_text_v1
 };
