@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +9,8 @@ import Navbar from '@/components/Navbar';
 import PartyBackground from '@/components/PartyBackground';
 import { authApi } from '@/lib/api';
 
-export default function SignInPage() {
+// Inner component that uses useSearchParams
+function SignInContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirectTo = searchParams.get('redirect') || '/dashboard';
@@ -204,3 +205,19 @@ export default function SignInPage() {
     );
 }
 
+// Wrapper with Suspense for useSearchParams
+export default function SignInPage() {
+    return (
+        <Suspense fallback={
+            <>
+                <PartyBackground />
+                <Navbar />
+                <main className="relative z-20 min-h-screen flex items-center justify-center">
+                    <div className="animate-spin w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full" />
+                </main>
+            </>
+        }>
+            <SignInContent />
+        </Suspense>
+    );
+}
