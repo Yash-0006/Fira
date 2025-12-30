@@ -83,11 +83,16 @@ const bookingService = {
             const booker = await User.findById(data.user).select('name email phone');
             console.log('🎫 Booker:', booker ? `${booker.name} (${booker.email})` : 'NOT FOUND');
 
-            // Send WhatsApp confirmation to booker if phone is available (uses approved plain-text template)
+            // Send WhatsApp confirmation to booker if phone is available
             if (booker?.phone) {
                 try {
-                    const bodyText = `Booking confirmed at ${venue.name} on ${data.bookingDate} ${data.startTime || ''}-${data.endTime || ''} (ID: ${booking._id})`;
-                    const template = whatsappTemplates.jaspers_market_plain_text_v1({ bodyText });
+                    const template = whatsappTemplates.appointment_confirmation_1({
+                        userName: booker.name,
+                        businessName: 'Fira',
+                        venueName: venue.name,
+                        date: new Date(data.bookingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        time: `${data.startTime} - ${data.endTime}`
+                    });
                     await whatsappService.sendTemplate({ to: booker.phone, template });
                     console.log('✅ WhatsApp booking confirmation sent to', booker.phone);
                 } catch (waErr) {

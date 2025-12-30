@@ -97,17 +97,20 @@ export default function VenueCard({ venue, index = 0 }: VenueCardProps) {
                             <span className="line-clamp-1">{venue.address.city}, {venue.address.state}</span>
                         </div>
                         {venue.locationLink && (
-                            <a
-                                href={venue.locationLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    window.open(venue.locationLink, '_blank', 'noopener,noreferrer');
+                                }}
                                 className="ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-500/20 border border-violet-500/30 text-violet-400 text-xs hover:bg-violet-500/30"
                             >
                                 Open in Maps
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 3h7m0 0v7m0-7L10 14" />
                                 </svg>
-                            </a>
+                            </button>
                         )}
                     </div>
 

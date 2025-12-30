@@ -4,16 +4,20 @@ const PrivateEventAccess = require('../models/PrivateEventAccess');
 const eventService = {
     // Get all events
     async getAllEvents(query = {}) {
-        const { page = 1, limit = 10, eventType, status, category, organizer, sort, search } = query;
-        const filter = {};
+        const { page = 1, limit = 10, eventType, status, category, organizer, sort, search, showCompleted } = query;
+        const filter = { isDeleted: { $ne: true } }; // Always exclude deleted events
         if (eventType) filter.eventType = eventType;
         if (category && category !== 'All') filter.category = category;
 
-        // If querying by organizer (dashboard), show all their events
+        // If querying by organizer (dashboard), show their events excluding deleted
         // Otherwise, only show approved/upcoming and active events (public listing)
         if (organizer) {
             filter.organizer = organizer;
             if (status) filter.status = status;
+            // By default, hide completed/past events in dashboard unless showCompleted=true
+            if (showCompleted !== 'true' && showCompleted !== true) {
+                filter.endDateTime = { $gte: new Date() }; // Only upcoming/ongoing events
+            }
         } else {
             // Public listing - show only fully approved events that are in the future
             filter.status = 'approved';
@@ -58,7 +62,8 @@ const eventService = {
             startDateTime: { $gte: new Date() },
             status: 'approved', // Only show fully approved events
             eventType: 'public',
-            isActive: { $ne: false }
+            isActive: { $ne: false },
+            isDeleted: { $ne: true }
         };
         if (category) filter.category = category;
 
@@ -199,13 +204,23 @@ const eventService = {
         return event;
     },
 
-    // Delete event
+    // Delete event (soft delete)
     async deleteEvent(id) {
-        const event = await Event.findByIdAndDelete(id);
+        const event = await Event.findByIdAndUpdate(
+            id,
+            {
+                $set: {
+                    isDeleted: true,
+                    deletedAt: new Date(),
+                    isActive: false
+                }
+            },
+            { new: true }
+        );
         if (!event) {
             throw new Error('Event not found');
         }
-        return { message: 'Event deleted successfully' };
+        return { message: 'Event deleted successfully', event };
     },
 
     // Cancel event
@@ -283,6 +298,9 @@ const eventService = {
         event.status = 'cancelled';
         event.cancelledAt = new Date();
         event.cancellationReason = reason;
+        event.isDeleted = true;
+        event.deletedAt = new Date();
+        event.isActive = false;
         event.currentAttendees = 0;
         await event.save();
 

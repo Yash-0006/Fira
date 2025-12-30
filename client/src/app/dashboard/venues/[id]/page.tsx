@@ -222,11 +222,11 @@ export default function VenueManagePage() {
         setIsCancelling(true);
         try {
             await venuesApi.cancel(venue._id);
-            showToast('Venue cancelled successfully', 'success');
+            showToast('Venue deleted successfully', 'success');
             setShowCancelModal(false);
             router.push('/dashboard/venues');
         } catch (err) {
-            showToast(err instanceof Error ? err.message : 'Failed to cancel venue', 'error');
+            showToast(err instanceof Error ? err.message : 'Failed to delete venue', 'error');
         } finally {
             setIsCancelling(false);
         }
@@ -536,7 +536,7 @@ export default function VenueManagePage() {
                                 onClick={() => setShowCancelModal(true)}
                                 className="px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500/20 text-red-400 border border-red-500/20 hover:bg-red-500/30 transition-colors"
                             >
-                                Cancel Venue
+                                Delete Venue
                             </button>
                         )}
 
@@ -582,7 +582,7 @@ export default function VenueManagePage() {
                                     disabled={isCancelling}
                                     className="bg-red-500 hover:bg-red-600"
                                 >
-                                    {isCancelling ? 'Cancelling...' : 'Yes, Cancel Venue'}
+                                    {isCancelling ? 'Deleting...' : 'Yes, Delete Venue'}
                                 </Button>
                             </div>
                         </div>
