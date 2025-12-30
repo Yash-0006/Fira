@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar';
 import PartyBackground from '@/components/PartyBackground';
 import { Button, Modal, Input } from '@/components/ui';
 import { eventsApi, ticketsApi } from '@/lib/api';
-import { formatStartDateTime, formatEndDateTime } from '@/lib/dateUtils';
+import { formatSingleDateTime } from '@/lib/dateUtils';
 import { Event, User, Venue } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import PostCard from '@/components/PostCard';
@@ -301,10 +301,10 @@ export default function EventDetailPage() {
                         {/* Date/Time Range Banner */}
                         <div className="absolute bottom-4 left-4 px-4 py-3 rounded-xl bg-black/70 backdrop-blur-sm border border-white/10">
                             <div className="text-violet-400 text-sm font-medium">
-                                {formatStartDateTime(event.date, event.startTime)}
+                                {formatSingleDateTime(event.startDateTime)}
                             </div>
                             <div className="text-white text-lg font-semibold">
-                                to {formatEndDateTime(event.endDate || event.date, event.endTime)}
+                                to {formatSingleDateTime(event.endDateTime)}
                             </div>
                         </div>
                     </div>
@@ -499,11 +499,11 @@ export default function EventDetailPage() {
                                 <div className="space-y-4 mb-6 pb-6 border-b border-white/10">
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-gray-400">From</span>
-                                        <span className="text-white text-right">{formatStartDateTime(event.date, event.startTime)}</span>
+                                        <span className="text-white text-right">{formatSingleDateTime(event.startDateTime)}</span>
                                     </div>
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-gray-400">To</span>
-                                        <span className="text-white text-right">{formatEndDateTime(event.endDate || event.date, event.endTime)}</span>
+                                        <span className="text-white text-right">{formatSingleDateTime(event.endDateTime)}</span>
                                     </div>
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-gray-400">Spots Left</span>
@@ -568,7 +568,7 @@ export default function EventDetailPage() {
                 <div className="space-y-6">
                     <div>
                         <h3 className="text-lg font-semibold text-white mb-2">{event.name}</h3>
-                        <p className="text-gray-400 text-sm">{formatDate(event.date)} • {event.startTime}</p>
+                        <p className="text-gray-400 text-sm">{formatSingleDateTime(event.startDateTime)}</p>
                     </div>
 
                     <div className="bg-white/5 rounded-xl p-4">
@@ -648,9 +648,8 @@ function getMockEvent(id: string): Event {
         name: 'Neon Nights Festival',
         description: 'Get ready for an electrifying night of music, lights, and unforgettable experiences at Neon Nights Festival!\n\nJoin us for an immersive journey through electronic dance music featuring:\n\n🎵 World-class DJs spinning the hottest tracks\n💡 Stunning visual displays and neon art installations\n🎪 Multiple stages with different music genres\n🍹 Premium bars and gourmet food stalls\n\nWhether you\'re a seasoned raver or new to the scene, Neon Nights promises an experience that will leave you breathless. Our state-of-the-art sound system and carefully curated lineup ensure every moment is pure magic.\n\nDoors open at 9 PM. Come early to explore the art installations and grab the best spots!',
         images: ['https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200'],
-        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        startTime: '21:00',
-        endTime: '04:00',
+        startDateTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 21 * 60 * 60 * 1000).toISOString(), // +7 days, 21:00
+        endDateTime: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(), // +8 days, 04:00
         eventType: 'public',
         ticketType: 'paid',
         ticketPrice: 1500,

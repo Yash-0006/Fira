@@ -91,10 +91,8 @@ export interface Event {
     name: string;
     description: string;
     images: string[];
-    date: string;
-    endDate?: string;
-    startTime: string;
-    endTime: string;
+    startDateTime: string;
+    endDateTime: string;
     eventType: 'public' | 'private';
     ticketType: 'free' | 'paid';
     ticketPrice: number;

@@ -129,16 +129,19 @@ function CreateEventForm() {
                 imageUrls = [uploadResult.url];
             }
 
+            // Combine date and time into DateTime strings
+            const startDateTime = new Date(`${formData.date}T${formData.startTime}:00`);
+            const endDateStr = formData.endDate || formData.date;
+            const endDateTime = new Date(`${endDateStr}T${formData.endTime}:00`);
+
             const eventData: any = {
                 organizer: user._id,
                 venue: formData.useCustomVenue ? null : formData.venueId,
                 name: formData.name,
                 description: formData.description,
                 category: formData.category,
-                date: formData.date,
-                endDate: formData.endDate || formData.date, // Default to same day if not set
-                startTime: formData.startTime,
-                endTime: formData.endTime,
+                startDateTime: startDateTime.toISOString(),
+                endDateTime: endDateTime.toISOString(),
                 eventType: formData.eventType,
                 ticketType: formData.ticketType,
                 ticketPrice: formData.ticketType === 'paid' ? formData.ticketPrice : 0,

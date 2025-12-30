@@ -14,54 +14,62 @@ function monthShort(date: Date): string {
 }
 
 function parseDate(dateStr: string): Date {
-    // Ensure we only parse date portion if ISO string
-    // Keep local timezone rendering consistent with existing UI
     return new Date(dateStr);
 }
 
-export function formatDateTimeRange(
-    startDateStr: string,
-    endDateStr: string | undefined,
-    startTime: string,
-    endTime: string
-): string {
-    const startDate = parseDate(startDateStr);
-    const endDate = parseDate(endDateStr || startDateStr);
-    const sameDay = startDate.toDateString() === endDate.toDateString();
+function formatTime(date: Date): string {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const mins = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${mins}`;
+}
+
+// Format DateTime as "30th Dec 14:00" for event cards
+export function formatEventDateTime(dateTimeStr: string): string {
+    const date = parseDate(dateTimeStr);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    const day = date.getDate();
+    return `${day}${getOrdinal(day)} ${monthShort(date)} ${formatTime(date)}`;
+}
+
+// Format DateTime range: "from 30th December 14:00 to 31st December 18:00"
+export function formatDateTimeRange(startDateTimeStr: string, endDateTimeStr: string): string {
+    const startDate = parseDate(startDateTimeStr);
+    const endDate = parseDate(endDateTimeStr);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return 'Invalid Date Range';
+    }
 
     const startDay = startDate.getDate();
     const endDay = endDate.getDate();
 
-    const startPart = `${startDay}${getOrdinal(startDay)} ${monthName(startDate)} ${startTime}`;
-    const endPart = `${endDay}${getOrdinal(endDay)} ${monthName(endDate)} ${endTime}`;
+    const startPart = `${startDay}${getOrdinal(startDay)} ${monthName(startDate)} ${formatTime(startDate)}`;
+    const endPart = `${endDay}${getOrdinal(endDay)} ${monthName(endDate)} ${formatTime(endDate)}`;
 
-    // Always include both boundaries per requirement
     return `from ${startPart} to ${endPart}`;
 }
 
-// Short format for event cards: "18th Dec 12:00"
-export function formatEventCardDateTime(dateStr: string, time: string): string {
-    const date = parseDate(dateStr);
+// Format single DateTime: "30th December 14:00"
+export function formatSingleDateTime(dateTimeStr: string): string {
+    const date = parseDate(dateTimeStr);
+    if (isNaN(date.getTime())) return 'Invalid Date';
     const day = date.getDate();
-    return `${day}${getOrdinal(day)} ${monthShort(date)} ${time}`;
+    return `${day}${getOrdinal(day)} ${monthName(date)} ${formatTime(date)}`;
 }
 
-// Format start datetime: "30th December 12:00"
-export function formatStartDateTime(dateStr: string, time: string): string {
+// Legacy support - kept for backward compatibility with old data
+export function formatEventCardDateTime(dateStr: string, time?: string): string {
     const date = parseDate(dateStr);
+    if (isNaN(date.getTime())) return 'Invalid Date';
     const day = date.getDate();
-    return `${day}${getOrdinal(day)} ${monthName(date)} ${time}`;
-}
-
-// Format end datetime: "9th January 12:00"
-export function formatEndDateTime(dateStr: string, time: string): string {
-    const date = parseDate(dateStr);
-    const day = date.getDate();
-    return `${day}${getOrdinal(day)} ${monthName(date)} ${time}`;
+    const timeStr = time || formatTime(date);
+    return `${day}${getOrdinal(day)} ${monthShort(date)} ${timeStr}`;
 }
 
 export function formatHumanDate(dateStr: string): string {
     const d = parseDate(dateStr);
+    if (isNaN(d.getTime())) return 'Invalid Date';
     const day = d.getDate();
     return `${day}${getOrdinal(day)} ${monthName(d)}`;
 }
+

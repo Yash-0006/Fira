@@ -54,23 +54,71 @@ const bookingService = {
     // Create booking
     async createBooking(data) {
         const Venue = require('../models/Venue');
+        const User = require('../models/User');
+        const emailService = require('./emailService');
 
+        console.log('📝 Creating booking for venue:', data.venue);
         const booking = await Booking.create(data);
+        console.log('✅ Booking created:', booking._id);
 
-        // Check if venue has auto-approve enabled
-        const venue = await Venue.findById(data.venue);
-        if (venue && venue.autoApproveBookings) {
-            // Auto-approve the booking
-            await Booking.findByIdAndUpdate(
-                booking._id,
-                { $set: { status: 'accepted' } },
-                { new: true }
-            );
-            // Update the booking status in memory
-            booking.status = 'accepted';
+        // Fetch venue with owner details
+        const venue = await Venue.findById(data.venue).populate('owner', 'name email');
+        console.log('🏢 Venue found:', venue ? venue.name : 'NOT FOUND');
+        console.log('👤 Venue owner:', venue?.owner ? `${venue.owner.name} (${venue.owner.email})` : 'NOT FOUND/POPULATED');
+
+        if (venue) {
+            // Check if venue has auto-approve enabled
+            if (venue.autoApproveBookings) {
+                await Booking.findByIdAndUpdate(
+                    booking._id,
+                    { $set: { status: 'accepted' } },
+                    { new: true }
+                );
+                booking.status = 'accepted';
+            }
+
+            // Get booker info
+            const booker = await User.findById(data.user).select('name email phone');
+            console.log('🎫 Booker:', booker ? `${booker.name} (${booker.email})` : 'NOT FOUND');
+
+            // Send email notification to venue owner
+            if (venue.owner && venue.owner.email && booker) {
+                console.log('📧 Attempting to send email to venue owner:', venue.owner.email);
+                try {
+                    await emailService.sendVenueBookingEmail(
+                        venue.owner.email,
+                        venue.owner.name || 'Venue Owner',
+                        { name: venue.name },
+                        {
+                            date: data.bookingDate,
+                            startTime: data.startTime,
+                            endTime: data.endTime,
+                            guestCount: data.expectedGuests,
+                            totalPrice: data.totalAmount,
+                            message: data.specialRequests
+                        },
+                        {
+                            name: booker.name,
+                            email: booker.email,
+                            phone: booker.phone
+                        }
+                    );
+                    console.log('✅ Venue booking notification sent successfully to:', venue.owner.email);
+                } catch (emailErr) {
+                    console.error('❌ Failed to send booking notification email:', emailErr.message);
+                    console.error('Email error details:', emailErr);
+                }
+            } else {
+                console.log('⚠️ Skipping email - missing data:', {
+                    hasOwner: !!venue.owner,
+                    hasOwnerEmail: !!venue.owner?.email,
+                    hasBooker: !!booker
+                });
+            }
+        } else {
+            console.log('⚠️ No venue found, skipping email notification');
         }
 
-        // TODO: Send notification to venue owner
         return booking;
     },
 

@@ -36,20 +36,13 @@ const eventSchema = new mongoose.Schema({
     images: [{
         type: String
     }],
-    date: {
+    // Combined datetime fields - store full date+time together
+    startDateTime: {
         type: Date,
         required: true
     },
-    endDate: {
+    endDateTime: {
         type: Date,
-        default: function () { return this.date; } // Defaults to same day
-    },
-    startTime: {
-        type: String,
-        required: true
-    },
-    endTime: {
-        type: String,
         required: true
     },
     eventType: {
@@ -162,7 +155,7 @@ eventSchema.pre('save', async function () {
 // Indexes
 eventSchema.index({ organizer: 1 });
 eventSchema.index({ venue: 1 });
-eventSchema.index({ date: 1 });
+eventSchema.index({ startDateTime: 1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ eventType: 1 });
 
