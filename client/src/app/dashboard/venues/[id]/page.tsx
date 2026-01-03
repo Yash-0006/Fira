@@ -43,10 +43,8 @@ interface EventRequest {
     _id: string;
     name: string;
     description: string;
-    date: string;
-    endDate?: string;
-    startTime: string;
-    endTime: string;
+    startDateTime: string;
+    endDateTime: string;
     organizer: { _id: string; name: string; email: string };
     venue: { _id: string; name: string };
     category: string;
@@ -425,6 +423,19 @@ export default function VenueManagePage() {
     const nextMonth = () => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1));
 
     const formatPrice = (price: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price);
+
+    // Format DateTime like "3 Jan 2026 14:00"
+    const formatDateTime = (dateTimeStr: string) => {
+        if (!dateTimeStr) return 'N/A';
+        const dt = new Date(dateTimeStr);
+        if (isNaN(dt.getTime())) return 'Invalid Date';
+        const day = dt.getDate();
+        const month = dt.toLocaleString('en-US', { month: 'short' });
+        const year = dt.getFullYear();
+        const hours = dt.getHours().toString().padStart(2, '0');
+        const mins = dt.getMinutes().toString().padStart(2, '0');
+        return `${day} ${month} ${year} ${hours}:${mins}`;
+    };
 
     // Get availability info for a specific date - returns all slots
     const getDateAvailability = (date: Date) => {
@@ -902,16 +913,13 @@ export default function VenueManagePage() {
                                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                     </svg>
-                                                    {new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                                    {event.endDate && event.endDate !== event.date && (
-                                                        <> - {new Date(event.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</>
-                                                    )}
+                                                    From: {formatDateTime(event.startDateTime)}
                                                 </p>
                                                 <p className="flex items-center gap-1">
                                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                     </svg>
-                                                    {event.startTime} - {event.endTime}
+                                                    To: {formatDateTime(event.endDateTime)}
                                                 </p>
                                                 <p className="flex items-center gap-1">
                                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
